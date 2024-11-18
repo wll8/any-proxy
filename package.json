@@ -1,0 +1,16 @@
+{
+  "name": "anyjs",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "vitest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "proxy-deep": "^3.1.1",
+    "vitest": "^2.1.5",
+    "vm2": "^3.9.19"
+  }
+}
