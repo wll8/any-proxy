@@ -1,13 +1,4 @@
 const DeepProxy = require(`proxy-deep`)
-const cb = (_this) => {
-  return new Promise(async (res, rej) => {
-    // 模拟异步操作
-    setTimeout(() => {
-      res([..._this.list])
-    }, Math.random() * 1000)
-  })
-}
-
 
 /**
  * 生成 guid
@@ -35,11 +26,12 @@ function deepTraverseAndReplace(item, { idKey, proxyTag } = {}) {
   }
 }
 
-module.exports = (opt = {
-  id: undefined, // string
-  cb: undefined, // function
-  hook: undefined, // function
-} = {}) => {
+module.exports = (opt = {}) => {
+  opt = Object.assign({
+    userData: {}, // object
+    id: ``, // string
+    hook: () => {}, // function
+  }, opt)
   let startId = 0
   const getId = () => {
     startId = startId + 1
@@ -48,7 +40,6 @@ module.exports = (opt = {
   const idKey = guid() // 当前id
   const parentKey = guid() // 父级id
   const proxyTag = guid() // 有这个标记这说明是代理对象
-  console.log(`idKey`, idKey)
   const getFn = ({ parent, id = getId() } = {}) => {
     const fn = () => { }
     fn[idKey] = id
@@ -61,38 +52,39 @@ module.exports = (opt = {
     }
   }
   const { fn, id, parent } = getFn({ id: opt.id })
-  const proxy =  new DeepProxy(fn, {
+  const proxy = new DeepProxy(fn, {
     get(target, key, receiver) {
       if ([idKey, proxyTag].includes(key)) {
         return Reflect.get(target, key, receiver);
       } else {
-        const { fn, id, parent } = getFn({ parent: target[idKey] })
-        if ([`then`].includes(key)) { // 取返回值
-          const promise = opt.cb(this, { type: `get`, id, parent, key })
-          return promise[key].bind(promise)
-        } else {
-          opt.hook(this, { type: `get`, id, parent, key })
-          return this.nest(fn)
+        const data = {
+          ...getFn({ parent: target[idKey] }),
+          type: `get`,
+          key,
         }
+        return opt.hook(this, data)
       }
     },
     apply(target, thisArg, args) {
-      const thisArgId = thisArg[idKey]
-      const { fn, id, parent } = getFn({ parent: target[idKey] })
-      const xxx = deepTraverseAndReplace(args, { idKey, proxyTag })
-      opt.hook(this, { type: `apply`, id, parent, thisArgId, args: xxx })
-      return this.nest(fn)
+      const data = {
+        ...getFn({ parent: target[idKey] }),
+        type: `apply`,
+        args: deepTraverseAndReplace(args, { idKey, proxyTag }),
+        thisArgId: thisArg[idKey],
+      }
+      return opt.hook(this, data)
     },
     set(target, key, value) {
-      const { fn, id, parent } = getFn({ parent: target[idKey] })
-      const xxx = deepTraverseAndReplace(value, { idKey, proxyTag }) 
-      opt.hook(this, { type: `set`, id, parent, key, value: xxx})
-      return this.nest(fn)
+      const data = {
+        ...getFn({ parent: target[idKey] }),
+        type: `set`,
+        key,
+        value: deepTraverseAndReplace(value, { idKey, proxyTag }),
+      }
+      return opt.hook(this, data)
     },
   }, {
-    userData: {
-      list: [],
-    },
+    userData: opt.userData,
   })
   return {
     proxy,
