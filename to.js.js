@@ -8,7 +8,7 @@ function getPath(id, list) {
   while (currentId) {
     const currentItem = idMap.get(currentId);
     if (!currentItem) break;  // 如果找不到当前 id，则结束循环
-    
+
     path.unshift(currentItem);  // 将当前 ID 添加到路径
     currentId = currentItem.parent;  // 更新 currentId 为它的父节点
   }
@@ -20,13 +20,13 @@ function generateCodeFromList(config) {
   const {
     proxyTag,
     list,
-    variablePrefix = ``,
+    variablePrefix = `v`,
     globalNamespace = ``,
-    variableKeyword = `const`,
+    variableKeyword = `var`,
     lib = [],
   } = config;
-  
-  
+
+
   const idToVarName = {};  // 存储 ID 到变量名的映射
   const idToFullPath = {};  // 存储 ID 到路径的映射
   let codeList = [];
@@ -36,33 +36,36 @@ function generateCodeFromList(config) {
   list.forEach(item => {
     const { type, id, parent, key, thisArgId, args, value } = item;
     const typeObj = {
-      'get'(){
+      'get'() {
         const objectVar = parent ? idToVarName[parent] : globalNamespace;
         const varName = generateVarName(id);
         idToVarName[id] = varName;
         const prefix = parent ? `${objectVar}.` : '';
         const fullPath = getPath(id, list).map(item => item.key).join(`.`)
         idToFullPath[id] = fullPath;
-        if(lib.includes(idToFullPath[id])) {
-          codeList.push(`${variableKeyword} ${varName} = ${idToFullPath[id]};`)
+        if (lib.includes(idToFullPath[id])) {
+          codeList.push(`${variableKeyword} ${varName} = ${idToFullPath[id]};`.trim())
         } else {
-          codeList.push(`${variableKeyword} ${varName} = ${prefix}${key};`)
+          codeList.push(`${variableKeyword} ${varName} = ${prefix}${key};`.trim())
         }
       },
-      'apply'(){
+      'apply'() {
         const funcVar = idToVarName[parent];
         const thisArg = thisArgId ? idToVarName[thisArgId] : 'null';
         const evalArgs = args.map(arg => {
-          return arg.startsWith(proxyTag) ? idToVarName[arg.replace(proxyTag, '')] : JSON.stringify(arg);
+          if(typeof (arg) === `string` && arg.startsWith(proxyTag)) {
+            return idToVarName[arg.replace(proxyTag, '')]
+          } else {
+            return JSON.stringify(arg);
+          }
         }).join(', ');
         const returnVar = generateVarName(id);
         idToVarName[id] = returnVar;
         codeList.push([
-          `${variableKeyword} ${returnVar}_ALL = {call(${funcVar}, ${thisArg}, ${evalArgs || null})};`,
-          `${variableKeyword} ${returnVar} = ${returnVar}_ALL[2]`,
+          `${variableKeyword} ${returnVar} = ${funcVar}.apply(${thisArg}, [${evalArgs || null}])`.trim(),
         ].join(`\n`))
       },
-      'set'(){
+      'set'() {
         const objVar = idToVarName[parent];
         const valueArgs = value.startsWith(proxyTag) ? idToVarName[value.replace(proxyTag, '')] : JSON.stringify(value);
         codeList.push(`${objVar}.${key} = ${valueArgs};`)

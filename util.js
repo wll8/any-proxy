@@ -2,25 +2,6 @@ const sleep = (ms = 1e3) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * 动态执行代码
- * @param {*} code 
- * @returns 
- */
-const remote = async (code = ``) => {
-  return new Promise(async (res, rej) => {
-    setTimeout(() => {
-      try {
-        // res(eval(code))
-        res(code)
-      } catch (err) {
-        rej(err)
-      }
-    }, Math.random() * 0)
-  })
-}
-
-
 class TaskQueue {
   constructor() {
     this.queue = []; // 存储任务的数组
@@ -69,5 +50,4 @@ class TaskQueue {
 module.exports = {
   TaskQueue,
   sleep,
-  remote,
 }

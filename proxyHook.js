@@ -87,6 +87,7 @@ module.exports = (opt = {}) => {
     userData: opt.userData,
   })
   return {
+    userData: opt.userData,
     proxy,
     idKey,
     parentKey,
