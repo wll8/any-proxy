@@ -16,44 +16,66 @@ const hookToCode = (opt = {}) => {
       },
     },
     hook(...args) {
+      const transformFn = async () => transform({
+        to: opt.codeType,
+        proxyTag,
+        list: _this.info.dataList,
+        ...opt.generateCodeOpt,
+      })
       const [_this, data] = args
       info = _this.info
-      if (data.type === `get` && [`then`].includes(data.key)) { // 取返回值
-        const promise = new Promise(async (resolve) => {
+      if (data.type === `get` && [`then`, `catch`, `awaitEnd`].includes(data.key)) { // 这些方法自运行
+        if([`awaitEnd`].includes(data.key)) {
+          const promiseFn = () => new Promise(async (resolve, reject) => {
+            const {
+              clearVar,
+            } = await transformFn()
+            await queue.awaitEnd().catch(reject)
+            await clearVar().then(resolve).catch(reject)
+          })
+          return promiseFn
+        }
+        const promise = new Promise(async (resolve, reject) => {
           queue.addTask(async () => {
+            if(queue.errList.length) {
+              const { getError } = await transformFn()
+              const err = getError({
+                info: _this.info,
+                generateCodeOpt: opt.generateCodeOpt,
+                errList: queue.errList,
+                path: _this.path,
+              })
+              return reject(err)
+            }
             const {
               awaitCb,
               run,
-            } = transform({
-              to: opt.codeType,
-              proxyTag,
-              list: _this.info.dataList,
-              ...opt.generateCodeOpt,
-            })
+            } = await transformFn()
             const snedLine = awaitCb(_this.info.endLine)
             _this.info.codeList.push(snedLine)
-            const res = await run(snedLine)
-            return resolve(res)
+            return run(snedLine).then(res => {
+              resolve(res)
+            }).catch(err => {
+              reject(err)
+            })
           })
         })
         return promise[data.key].bind(promise)
       } else {
         queue.addTask(async () => {
+          if(queue.errList.length) {
+            return []
+          }
           _this.info.dataList.push(data)
           const {
-            code,
+            getCode,
             run,
-          } = transform({
-            to: opt.codeType,
-            proxyTag,
-            list: _this.info.dataList,
-            ...opt.generateCodeOpt,
-          })
-          const line = code().at(-1)
+          } = await transformFn()
+          const code = getCode()
+          const line = code.at(-1)
           _this.info.endLine = line
           _this.info.codeList.push(_this.info.endLine)
-          const res = await run(_this.info.endLine)
-          return res
+          return run(_this.info.endLine)
         })
       }
       return _this.nest(data.fn)

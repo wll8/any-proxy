@@ -11,6 +11,7 @@
   "dependencies": {
     "proxy-deep": "^3.1.1",
     "vitest": "^2.1.5",
-    "vm2": "^3.9.19"
+    "vm2": "^3.9.19",
+    "websocket": "^1.0.35"
   }
 }

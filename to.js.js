@@ -37,10 +37,10 @@ function generateCodeFromList(config) {
     const { type, id, parent, key, thisArgId, args, value } = item;
     const typeObj = {
       'get'() {
-        const objectVar = parent ? idToVarName[parent] : globalNamespace;
+        const objVar = parent ? idToVarName[parent] : globalNamespace;
         const varName = generateVarName(id);
         idToVarName[id] = varName;
-        const prefix = parent ? `${objectVar}.` : '';
+        const prefix = parent ? `${objVar}.` : '';
         const fullPath = getPath(id, list).map(item => item.key).join(`.`)
         idToFullPath[id] = fullPath;
         if (lib.includes(idToFullPath[id])) {
@@ -66,9 +66,10 @@ function generateCodeFromList(config) {
         ].join(`\n`))
       },
       'set'() {
-        const objVar = idToVarName[parent];
-        const valueArgs = value.startsWith(proxyTag) ? idToVarName[value.replace(proxyTag, '')] : JSON.stringify(value);
-        codeList.push(`${objVar}.${key} = ${valueArgs};`)
+        const objVar = parent ? idToVarName[parent] : globalNamespace;
+        const setKey = objVar ? `${objVar}.${key}` : key;
+        const valueArgs = String(value).startsWith(proxyTag) ? idToVarName[value.replace(proxyTag, '')] : JSON.stringify(value);
+        codeList.push(`${setKey} = ${valueArgs};`)
       },
     }
     typeObj[type] && typeObj[type]()

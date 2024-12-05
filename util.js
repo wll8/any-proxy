@@ -6,6 +6,7 @@ class TaskQueue {
   constructor() {
     this.queue = []; // 存储任务的数组
     this.isRunning = false; // 标记当前是否有任务在运行
+    this.errList = []; // 错误列表
   }
 
   // 添加任务到队列
@@ -29,6 +30,7 @@ class TaskQueue {
       await task(); // 执行任务
     } catch (error) {
       console.error('Task failed:', error); // 捕获异常并打印错误
+      this.errList.push(error)
     } finally {
       this.isRunning = false; // 运行结束，重置状态
       this.runNext(); // 继续运行下一个任务
