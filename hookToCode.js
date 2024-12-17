@@ -3,7 +3,7 @@ const util = require(`./util.js`)
 const transform = require(`./transform.js`)
 const hookToCode = (opt = {}) => {
   opt = Object.assign({
-    codeType: ``, // js | aardio
+    codeType: `js`, // js | aardio
     generateCodeOpt: {}, // object
   }, opt)
   const queue = new util.TaskQueue()
