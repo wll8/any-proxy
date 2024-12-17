@@ -22,7 +22,7 @@ const transform = async (opt = {}) => {
         return new Promise(async (resolve, reject) => {
           try {
             // 由于 js 只有一个返回值, 所以只取一个
-            sdk.run(code).then((res) => {
+            sdk.run(code).then(([res]) => {
               resolve(res)
             }).catch(err => {
               reject(err)
