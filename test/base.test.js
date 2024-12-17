@@ -119,7 +119,7 @@ describe(`js`, async () => {
     await node.awaitEnd()
     expect(res).toStrictEqual(2)
   })
-  test.todo(`node.Math.from([node.a, node.b]) -- 在数组中引用多个远程参数`, async () => {
+  test(`node.Array.from([node.a, node.b]) -- 在数组中引用多个远程参数`, async () => {
     const { proxy: node, userData } = hookToCode({
       codeType: `js`,
     })
@@ -130,13 +130,83 @@ describe(`js`, async () => {
     await node.awaitEnd()
     expect(res).toStrictEqual([1, 2])
   })
-  test.todo(`不清除变量`, async () => {
-    const { proxy: node, userData } = hookToCode({
+  test(`node.Array.from([node.a.a, node.b.b]) -- 在数组中引用多个远程参数 -- 对象中取值`, async () => {
+    const { proxy: node, queue } = hookToCode({
+      codeType: `js`,
+    })
+    node.a = {a: 1}
+    node.b = {b: 2}
+    const [res] = await node.Array.from([node.a.a, node.b.b])
+    console.log(res)
+    expect(res).toStrictEqual([1, 2])
+  })
+  test(`使用之前设置的变量`, async () => {
+    const { proxy: node, queue } = hookToCode({
       codeType: `js`,
     })
     node.a = 1
     node.b = 2
+    const [res] = await node.Array.from([node.a, node.b])
+    console.log(res)
     await node.awaitEnd()
-    // expect(size).toBeTypeOf(`number`)
+    const { proxy: node2 } = hookToCode({
+      codeType: `js`,
+    })
+    // 还可以再拿到的 a 和 b
+    const [res2] = await node2.Array.from([node2.a, node2.b])
+    console.log(res2)
+    expect(res2).toStrictEqual([1, 2])
+  })
+  test(`向函数传对象 -- 对象`, async () => {
+    const { proxy: node, queue } = hookToCode({
+      codeType: `js`,
+    })
+    const data = {a: 1, b: 2}
+    const [res] = await node.Object(data)
+    console.log(res)
+    await node.awaitEnd()
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传对象 -- 对象中包含云端变量`, async () => {
+    const { proxy: node, queue } = hookToCode({
+      codeType: `js`,
+    })
+    const max = node.Math.max(1, 2)
+    const data = {a: 1, b: 2, max}
+    const [res] = await node.Object(data)
+    console.log(res)
+    await node.awaitEnd()
+    expect(res).toStrictEqual({
+      a: 1, b: 2, max: 2
+    })
+  })
+  test(`向函数传对象 -- 数组`, async () => {
+    const { proxy: node, queue } = hookToCode({
+      codeType: `js`,
+    })
+    const data = [{a: 1, b: 2}]
+    const [res] = await node.Object(data)
+    console.log(res)
+    await node.awaitEnd()
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传字面量 -- 数字`, async () => {
+    const { proxy: node, queue } = hookToCode({
+      codeType: `js`,
+    })
+    const [res] = await node.Math.max(1,2,3)
+    console.log(res)
+    await node.awaitEnd()
+    expect(res).toStrictEqual(3)
+  })
+  test(`向函数传字面量 -- 字符串`, async () => {
+    const { proxy: node, queue } = hookToCode({
+      codeType: `js`,
+    })
+    const data = `hello`
+    const [res] = await node.String(data)
+    console.log(res)
+    await node.awaitEnd()
+    expect(res).toStrictEqual(data)
   })
 }, 0)

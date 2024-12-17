@@ -13,16 +13,32 @@ function guid(format = 'gxxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx') {
 }
 
 function deepTraverseAndReplace(item, { idKey, proxyTag } = {}) {
-  // 检查是否是数组
-  if (Array.isArray(item)) {
-    // 如果是数组，递归处理每个元素
-    return item.map(element => deepTraverseAndReplace(element, { idKey, proxyTag }));
+  // 判断是否是对象或数组
+  if (typeof item === 'object' && item !== null) {
+      // 如果是代理对象并且包含 proxyTag 属性，则直接返回 proxyTag 属性的值
+      if (item[proxyTag] !== undefined) {
+        return `${proxyTag}${item[idKey]}`
+      }
+
+      // 如果是数组，则遍历数组元素
+      if (Array.isArray(item)) {
+        return item.map(item => deepTraverseAndReplace(item, { idKey, proxyTag }));
+      }
+
+      // 如果是对象，则遍历对象的键和值
+      const convertedObj = {};
+      for (const key in item) {
+        if (item.hasOwnProperty(key)) {
+          const value = item[key];
+          // 递归调用 deepTraverseAndReplace 处理值
+          convertedObj[key] = deepTraverseAndReplace(value, { idKey, proxyTag });
+        }
+      }
+      return convertedObj;
   } else if (typeof item === 'function' && item[proxyTag] !== undefined) {
-    // 如果是函数并具有属性 fn.x，返回 fn.id
-    return `${proxyTag}${item[idKey]}`;
+    return `${proxyTag}${item[idKey]}`
   } else {
-    // 如果既不是数组也不符合转换规则，直接返回项
-    return item;
+    return item
   }
 }
 

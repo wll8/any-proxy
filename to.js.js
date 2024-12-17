@@ -52,17 +52,21 @@ function generateCodeFromList(config) {
       'apply'() {
         const funcVar = idToVarName[parent];
         const thisArg = thisArgId ? idToVarName[thisArgId] : 'null';
-        const evalArgs = args.map(arg => {
-          if(typeof (arg) === `string` && arg.startsWith(proxyTag)) {
-            return idToVarName[arg.replace(proxyTag, '')]
-          } else {
-            return JSON.stringify(arg);
-          }
-        }).join(', ');
+        // 递归转换代理标记为变量名
+        function replaceProxyTag(args) {
+          const list = args.map(item => {
+            const re = new RegExp(`"${proxyTag}(_[0-9]+)"`, `gm`)
+            return JSON.stringify(item).replace(re, `${variablePrefix}$1`)
+          })
+          return list.join(`, `)
+        }
+        
+        
+        const evalArgs = replaceProxyTag(args);
         const returnVar = generateVarName(id);
         idToVarName[id] = returnVar;
         codeList.push([
-          `${variableKeyword} ${returnVar} = ${funcVar}.apply(${thisArg}, [${evalArgs || null}])`.trim(),
+          `${variableKeyword} ${returnVar} = ${funcVar}.apply(${thisArg}, [${evalArgs}])`.trim(),
         ].join(`\n`))
       },
       'set'() {
