@@ -24,8 +24,8 @@ const hookToCode = (opt = {}) => {
       })
       const [_this, data] = args
       info = _this.info
-      if (data.type === `get` && [`then`, `catch`, `awaitEnd`].includes(data.key)) { // 这些方法自运行
-        if([`awaitEnd`].includes(data.key)) {
+      if (data.type === `get` && [`then`, `catch`, `endClear`].includes(data.key)) { // 这些方法自运行
+        if([`endClear`].includes(data.key)) {
           const promiseFn = () => new Promise(async (resolve, reject) => {
             const {
               clearVar,
@@ -81,10 +81,19 @@ const hookToCode = (opt = {}) => {
       return _this.nest(data.fn)
     },
   })
+  /**
+   * 导出一个清除变量的方法, 而不是让用户直接调用 proxy.endClear
+   * 因为 proxy.endClear 可能会是远程关键字
+   * @returns 
+   */
+  const endClear = async () => {
+    return proxy.endClear()
+  }
   return {
     queue,
     proxy,
     proxyTag,
+    endClear,
     userData,
   }
 }
