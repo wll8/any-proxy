@@ -39,12 +39,15 @@ class TaskQueue {
   
   awaitEnd() {
     return new Promise((resolve) => {
-      const checkInterval = setInterval(() => {
+      let timer
+      const fn = () => {
         if (!this.isRunning && this.queue.length === 0) {
-          clearInterval(checkInterval);
+          timer && clearInterval(timer);
           resolve();
         }
-      }, 100);
+      }
+      fn()
+      timer = setInterval(fn, 50);
     });
   }
 }
