@@ -250,4 +250,12 @@ describe(`js`, async () => {
     expect(res1).toStrictEqual(err)
     && expect(res2).toStrictEqual(err)
   })
+  test(`当返回值为 undefined 时收到的是 null -- 因为 json 不支持 undefined`, async () => {
+    const { endClear, proxy: node } = hookToCode()
+    const res = await node.console.log(`hello`)
+    console.log(res)
+    await endClear()
+    expect(res).toBe(null)
+  })
 }, 0)
+
