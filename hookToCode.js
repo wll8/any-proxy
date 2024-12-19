@@ -28,9 +28,19 @@ const hookToCode = (opt = {}) => {
         if([`endClear`].includes(data.key)) {
           const promiseFn = () => new Promise(async (resolve, reject) => {
             const {
+              getError,
               clearVar,
             } = await transformFn()
             await queue.awaitEnd().catch(reject)
+            if(queue.errList.length) {
+              const err = getError({
+                info: _this.info,
+                generateCodeOpt: opt.generateCodeOpt,
+                errList: queue.errList,
+                path: _this.path,
+              })
+              return reject(err)
+            }
             await clearVar().then(resolve).catch(reject)
           })
           return promiseFn

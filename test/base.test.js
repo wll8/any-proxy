@@ -185,4 +185,47 @@ describe(`js`, async () => {
     await endClear()
     expect(res).toStrictEqual(2)
   })
+  test(`解构`, async () => {
+    const { endClear, proxy: node } = hookToCode()
+    const { Math } = node
+    let {globalThis: {a, b}} = node
+    a = 1
+    b = 2
+    node.c = 3
+    const res = await Math.max(a, b, node.c)
+    await endClear()
+    expect(res).toStrictEqual(3)
+  })
+  test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 Math.max 和 endClear 中获取错误`, async () => {
+    const { endClear, proxy: node } = hookToCode()
+    const { Math } = node
+    let {undeclaredVariablesA, undeclaredVariablesB} = node
+    const res = await Math.max(undeclaredVariablesA, undeclaredVariablesB).catch(String)
+    console.log(res)
+    await endClear().catch(String)
+    expect(res).toStrictEqual(`Error: ReferenceError: undeclaredVariablesA is not defined`)
+  })
+  test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 catch 例如 endClear 中获取错误(由于异步实现, 不能即时获取错误)`, async () => {
+    const { endClear, proxy: node } = hookToCode()
+    let {undeclaredVariablesA, undeclaredVariablesB} = node
+    const res = await endClear().catch(String)
+    console.log(res)
+    expect(res).toStrictEqual(`Error: ReferenceError: undeclaredVariablesA is not defined`)
+  })
+  test(`获取错误信息 -- 调用不存在的方法, 在 endClear 中获取之前未捕获的错误`, async () => {
+    const { endClear, proxy: node } = hookToCode()
+    node.a.b.c()
+    const res = await endClear().catch(String)
+    console.log(res)
+    expect(res).toStrictEqual(`Error: TypeError: Cannot read properties of undefined (reading 'c')`)
+  })
+  test(`获取错误信息 -- 调用不存在的方法, 在 endClear 中也抛出同样的错误`, async () => {
+    const err = `Error: TypeError: Cannot read properties of undefined (reading 'c')`
+    const { endClear, proxy: node } = hookToCode()
+    const res1 = await node.a.b.c().catch(String)
+    const res2 = await endClear().catch(String)
+    console.log(res1, res2)
+    expect(res1).toStrictEqual(err)
+    && expect(res2).toStrictEqual(err)
+  })
 }, 0)
