@@ -3,6 +3,28 @@ require(`util`).inspect.defaultOptions.depth = 4 // console.log 展开对象
 import { describe, expect, test } from 'vitest'
 const hookToCode = require(`../hookToCode.js`)
 
+describe(`sdk`, async () => {
+  const sdk = await require(`../sdkPromise.js`)
+  test(`发送多个参数并接收返回值`, async () => {
+    const sendArgs = [[1, 2, 3], 4, 5]
+    const [resArgs] = await sdk.run([
+      `
+        return args
+      `, ...sendArgs
+    ])
+    expect(sendArgs).toStrictEqual(resArgs)
+  })
+  test(`获取错误信息 -- 使用未声明的变量`, async () => {
+    const res = await sdk.run([
+      `
+        undeclaredVariablesA
+      `
+    ]).catch(String)
+    console.log(res)
+    expect(res).toStrictEqual(`ReferenceError: undeclaredVariablesA is not defined`)
+  })
+}, 0)
+
 describe(`js`, async () => {
   test(`console.log -- 拆分调用`, async () => {
     const { endClear, proxy: node, userData } = hookToCode()
