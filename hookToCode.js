@@ -5,6 +5,8 @@ const hookToCode = (opt = {}) => {
   opt = Object.assign({
     codeType: `js`, // js | aardio
     generateCodeOpt: {}, // object
+    clearKey: `clear`,
+    exitKey: `exit`,
   }, opt)
   const queue = new util.TaskQueue()
   const { proxy, proxyTag, userData } = proxyHook({
@@ -24,8 +26,13 @@ const hookToCode = (opt = {}) => {
       })
       const [_this, data] = args
       info = _this.info
-      if (data.type === `get` && [`then`, `catch`, `endClear`].includes(data.key)) { // 这些方法自运行
-        if([`endClear`].includes(data.key)) {
+      if (data.type === `get` && [
+        `then`,
+        `catch`,
+        opt.clearKey,
+        opt.exitKey,
+      ].includes(data.key)) { // 这些方法自运行
+        if([opt.clearKey].includes(data.key)) {
           const promiseFn = () => new Promise(async (resolve, reject) => {
             const {
               getError,
