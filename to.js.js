@@ -56,6 +56,7 @@ function generateCodeFromList(config) {
         function replaceProxyTag(args) {
           const list = args.map(item => {
             const re = new RegExp(`"${proxyTag}(_[0-9]+)"`, `gm`)
+            item = typeof(item) === `undefined` ? null : item
             return JSON.stringify(item).replace(re, `${variablePrefix}$1`)
           })
           return list.join(`, `)

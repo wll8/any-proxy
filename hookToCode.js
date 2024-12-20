@@ -61,7 +61,7 @@ const hookToCode = (opt = {}) => {
               awaitCb,
               run,
             } = await transformFn()
-            const snedLine = awaitCb(_this.info.endLine)
+            const snedLine = awaitCb(args)
             _this.info.codeList.push(snedLine)
             return run(snedLine).then(res => {
               resolve(res)

@@ -34,12 +34,15 @@ const transform = async (opt = {}) => {
       },
       /**
        * 获取某一行的返回值
-       * @param {*} line 
+       * @param {*} args 
        * @returns 
        */
-      awaitCb: (line) => {
+      awaitCb: (args) => {
+        const [_this, data] = args
+        const line = _this.info.endLine
         const varName = obj.getVarName(line)
-        const snedLine = `return ${varName}`
+        const parentVarName = `${opt.variablePrefix}${data.parent}`
+        const snedLine = parentVarName === varName ? `return ${varName}` : `return ${parentVarName}`
         return snedLine
       },
       /**

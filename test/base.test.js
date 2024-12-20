@@ -156,48 +156,6 @@ describe(`js`, async () => {
     await endClear2()
     expect(res2).toStrictEqual([1, 2])
   })
-  test(`向函数传对象 -- 对象`, async () => {
-    const { endClear, proxy: node, queue } = hookToCode()
-    const data = {a: 1, b: 2}
-    const res = await node.Object(data)
-    console.log(res)
-    await endClear()
-    expect(res).toStrictEqual(data)
-  })
-  test(`向函数传对象 -- 对象中包含云端变量`, async () => {
-    const { endClear, proxy: node, queue } = hookToCode()
-    const max = node.Math.max(1, 2)
-    const data = {a: 1, b: 2, max}
-    const res = await node.Object(data)
-    console.log(res)
-    await endClear()
-    expect(res).toStrictEqual({
-      a: 1, b: 2, max: 2
-    })
-  })
-  test(`向函数传对象 -- 数组`, async () => {
-    const { endClear, proxy: node, queue } = hookToCode()
-    const data = [{a: 1, b: 2}]
-    const res = await node.Object(data)
-    console.log(res)
-    await endClear()
-    expect(res).toStrictEqual(data)
-  })
-  test(`向函数传字面量 -- 数字`, async () => {
-    const { endClear, proxy: node, queue } = hookToCode()
-    const res = await node.Math.max(1,2,3)
-    console.log(res)
-    await endClear()
-    expect(res).toStrictEqual(3)
-  })
-  test(`向函数传字面量 -- 字符串`, async () => {
-    const { endClear, proxy: node, queue } = hookToCode()
-    const data = `hello`
-    const res = await node.String(data)
-    console.log(res)
-    await endClear()
-    expect(res).toStrictEqual(data)
-  })
   test(`readme 中的 demo`, async () => {
     const { endClear, proxy: node } = hookToCode()
     
@@ -256,6 +214,180 @@ describe(`js`, async () => {
     console.log(res)
     await endClear()
     expect(res).toBe(null)
+  })
+  test(`向函数传字面量 -- 数字`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const res = await node.Math.max(1,2,3)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(3)
+  })
+  test(`向函数传字面量 -- 字符串`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = `hello`
+    const res = await node.String(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传字面量 -- 布尔值`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const res = await node.Boolean(true)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(true)
+  })
+  
+  test(`向函数传字面量 -- null`, async () => {
+    const { endClear, proxy: node, queue, userData } = hookToCode()
+    const arr = node.Array()
+    arr.push(null)
+    const res = await arr
+    await endClear()
+    console.log(res)
+    expect(res).toStrictEqual([null])
+  })
+  
+  test(`向函数传字面量 -- undefined`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const arr = node.Array()
+    arr.push(undefined)
+    const res = await arr
+    await endClear()
+    console.log(res)
+    expect(res).toStrictEqual([null])
+  })
+  test(`向函数传对象 -- 对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = {a: 1, b: 2}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传对象 -- 对象中包含代理的方法调用`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const max = node.Math.max(1, 2)
+    const data = {a: 1, b: 2, max}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual({
+      a: 1, b: 2, max: 2
+    })
+  })
+  test(`向函数传对象 -- 数组`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = [{a: 1, b: 2}]
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  
+  test(`向函数传对象 -- 嵌套对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = {a: {b: {c: 3}}}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  
+  test(`向函数传对象 -- 数组中包含对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = [{a: 1}, {b: 2}]
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  
+  test(`向函数传对象 -- 对象中包含数组`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = {a: [1, 2, 3]}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  
+  test(`向函数传对象 -- 深层嵌套对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = {a: {b: {c: {d: 4}}}}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  
+  test.todo(`向函数传对象 -- 包含函数`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const func = () => 42
+    const data = {a: func}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res.a()).toStrictEqual(42)
+  })
+  
+  test(`向函数传对象 -- 包含代理对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    node.a = 1
+    const data = {a: node.a}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual({a: 1})
+  })
+  
+  test(`向函数传对象 -- 包含嵌套代理对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    node.a = {b: 2}
+    const data = {a: node.a}
+    const res = await node.Object(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual({a: {b: 2}})
+  })
+  
+  test(`向函数传对象 -- 包含数组和代理对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    node.a = 1
+    const data = [node.a, 2, 3]
+    const res = await node.Array.from(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual([1, 2, 3])
+  })
+  
+  test(`向函数传对象 -- 包含嵌套数组和代理对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    node.a = {b: 2}
+    const data = [node.a, {c: 3}]
+    const res = await node.Array.from(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual([{b: 2}, {c: 3}])
+  })
+  
+  test(`向函数传对象 -- 包含嵌套数组和对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    const data = [{a: [1, 2]}, {b: [3, 4]}]
+    const res = await node.Array.from(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual(data)
+  })
+  
+  test(`向函数传对象 -- 包含嵌套数组和对象及代理对象`, async () => {
+    const { endClear, proxy: node, queue } = hookToCode()
+    node.a = {b: 2}
+    const data = [{a: [node.a, 2]}, {b: [3, 4]}]
+    const res = await node.Array.from(data)
+    console.log(res)
+    await endClear()
+    expect(res).toStrictEqual([{a: [{b: 2}, 2]}, {b: [3, 4]}])
   })
 }, 0)
 
