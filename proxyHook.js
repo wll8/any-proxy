@@ -53,9 +53,9 @@ module.exports = (opt = {}) => {
     startId = startId + 1
     return String(`_${startId}`)
   }
-  const idKey = guid() // 当前id
-  const parentKey = guid() // 父级id
-  const proxyTag = guid() // 有这个标记这说明是代理对象
+  const idKey = `idKey_${guid()}` // 当前id
+  const parentKey = `parentKey_${guid()}` // 父级id
+  const proxyTag = `proxyTag_${guid()}` // 有这个标记这说明是代理对象
   const getFn = ({ parent, id = getId() } = {}) => {
     const fn = () => { }
     fn[idKey] = id
