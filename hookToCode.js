@@ -98,19 +98,10 @@ const hookToCode = (opt = {}) => {
       return _this.nest(data.fn)
     },
   })
-  /**
-   * 导出一个清除变量的方法, 而不是让用户直接调用 proxy.endClear
-   * 因为 proxy.endClear 可能会是远程关键字
-   * @returns 
-   */
-  const endClear = async () => {
-    return proxy.endClear()
-  }
   return {
     queue,
     proxy,
     proxyTag,
-    endClear,
     userData,
   }
 }

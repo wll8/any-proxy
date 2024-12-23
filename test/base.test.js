@@ -27,9 +27,9 @@ describe(`sdk`, async () => {
 
 describe(`js`, async () => {
   test(`console.log -- 拆分调用`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    node.console.log(`hello`)
-    await node.clear()
+    const { proxy, userData } = hookToCode()
+    proxy.console.log(`hello`)
+    await proxy.clear()
     console.log(userData.info.codeList)
     expect(userData.info.codeList).toStrictEqual([
       'v_1 = console;',
@@ -38,7 +38,7 @@ describe(`js`, async () => {
     ])
   })
   test(`console.log -- 作为库调用`, async () => {
-    const { proxy: node, userData } = hookToCode({
+    const { proxy, userData } = hookToCode({
       generateCodeOpt: {
         lib: [
           `console.log`
@@ -46,8 +46,8 @@ describe(`js`, async () => {
       },
       codeType: `js`,
     })
-    node.console.log(`hello`)
-    await node.clear()
+    proxy.console.log(`hello`)
+    await proxy.clear()
     console.log(userData.info.codeList)
     expect(userData.info.codeList).toStrictEqual([
       'v_1 = console;',
@@ -55,338 +55,338 @@ describe(`js`, async () => {
       'v_3 = v_2.apply(v_1, ["hello"])'
     ])
   })
-  test(`node.process.env.OS -- 即时取值`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    const os = await node.process.env.OS
+  test(`proxy.process.env.OS -- 即时取值`, async () => {
+    const { proxy } = hookToCode()
+    const os = await proxy.process.env.OS
     console.log(os)
-    await node.clear()
+    await proxy.clear()
     expect(os).toBeTypeOf(`string`)
   })
   test(`msg/process.msg2 全局空间设置和获取值`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    node.msg = `msg`
-    node.process.msg2 = `msg2`
-    const msg = await node.msg
-    const msg2 = await node.process.msg2
-    await node.clear()
+    const { proxy, userData } = hookToCode()
+    proxy.msg = `msg`
+    proxy.process.msg2 = `msg2`
+    const msg = await proxy.msg
+    const msg2 = await proxy.process.msg2
+    await proxy.clear()
     const res = {msg, msg2}
     console.log(res)
     expect(res).toStrictEqual({ msg: 'msg', msg2: 'msg2' })
   })
-  test(`node.process.myFile = node.__filename -- 挂载 __filename 到 process.myFile`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    node.process.myFile = node.__filename
-    const name = await node.process.myFile
-    await node.clear()
+  test(`proxy.process.myFile = proxy.__filename -- 挂载 __filename 到 process.myFile`, async () => {
+    const { proxy, userData } = hookToCode()
+    proxy.process.myFile = proxy.__filename
+    const name = await proxy.process.myFile
+    await proxy.clear()
     console.log({name})
     expect(name).toBeTypeOf(`string`)
   })
-  test(`fs.statSync(node.process.myFile) -- 函数的参数使用挂载的变量`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    node.process.myFile = node.__filename
-    const fs = node.require(`fs`)
-    const {size} = await fs.statSync(node.process.myFile, `utf8`)
-    await node.clear()
+  test(`fs.statSync(proxy.process.myFile) -- 函数的参数使用挂载的变量`, async () => {
+    const { proxy, userData } = hookToCode()
+    proxy.process.myFile = proxy.__filename
+    const fs = proxy.require(`fs`)
+    const {size} = await fs.statSync(proxy.process.myFile, `utf8`)
+    await proxy.clear()
     console.log({size})
     expect(size).toBeTypeOf(`number`)
   })
   test(`require('fs').statSync -- 函数连续调用并获取返回值的属性`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    const size = await node.require(`fs`).statSync(node.__filename, `utf8`).size
-    const size2 = await node.require(`fs`).statSync(node.__filename, {
+    const { proxy, userData } = hookToCode()
+    const size = await proxy.require(`fs`).statSync(proxy.__filename, `utf8`).size
+    const size2 = await proxy.require(`fs`).statSync(proxy.__filename, {
       encoding: `utf8`,
     }).size
-    await node.clear()
+    await proxy.clear()
     console.log({size, size2})
     expect(size).toBeTypeOf(`number`)
     expect(size2).toBeTypeOf(`number`)
   })
   test(`赋值、取值、函数调用`, async () => {
-    const { proxy: node, userData, queue } = hookToCode()
-    node.msg = `msg`
-    node.process.msg2 = `msg2`
-    node.process.myFile = node.__filename
-    const msg = await node.msg
-    const msg2 = await node.process.msg2
-    const fs = node.require(`fs`)
-    const {size} = await fs.statSync(node.process.myFile, `utf8`)
-    const pid = await node.process.pid
+    const { proxy, userData, queue } = hookToCode()
+    proxy.msg = `msg`
+    proxy.process.msg2 = `msg2`
+    proxy.process.myFile = proxy.__filename
+    const msg = await proxy.msg
+    const msg2 = await proxy.process.msg2
+    const fs = proxy.require(`fs`)
+    const {size} = await fs.statSync(proxy.process.myFile, `utf8`)
+    const pid = await proxy.process.pid
     const res = {msg, msg2, sizeType: typeof(size), pidType: typeof(pid)}
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual({ msg: 'msg', msg2: 'msg2', sizeType: 'number', pidType: 'number' })
   })
-  test(`node.Math.max(node.a, node.b) -- 引用多个远程参数`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    node.a = 1
-    node.b = 2
-    const res = await node.Math.max(node.a, node.b)
+  test(`proxy.Math.max(proxy.a, proxy.b) -- 引用多个远程参数`, async () => {
+    const { proxy, userData } = hookToCode()
+    proxy.a = 1
+    proxy.b = 2
+    const res = await proxy.Math.max(proxy.a, proxy.b)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(2)
   })
-  test(`node.Array.from([node.a, node.b]) -- 在数组中引用多个远程参数`, async () => {
-    const { proxy: node, userData } = hookToCode()
-    node.a = 1
-    node.b = 2
-    const res = await node.Array.from([node.a, node.b])
+  test(`proxy.Array.from([proxy.a, proxy.b]) -- 在数组中引用多个远程参数`, async () => {
+    const { proxy, userData } = hookToCode()
+    proxy.a = 1
+    proxy.b = 2
+    const res = await proxy.Array.from([proxy.a, proxy.b])
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual([1, 2])
   })
-  test(`node.Array.from([node.a.a, node.b.b]) -- 在数组中引用多个远程参数 -- 对象中取值`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = {a: 1}
-    node.b = {b: 2}
-    const res = await node.Array.from([node.a.a, node.b.b])
+  test(`proxy.Array.from([proxy.a.a, proxy.b.b]) -- 在数组中引用多个远程参数 -- 对象中取值`, async () => {
+    const { proxy, queue } = hookToCode()
+    proxy.a = {a: 1}
+    proxy.b = {b: 2}
+    const res = await proxy.Array.from([proxy.a.a, proxy.b.b])
     console.log(res)
     expect(res).toStrictEqual([1, 2])
   })
   test(`使用之前设置的变量`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = 1
-    node.b = 2
-    const res = await node.Array.from([node.a, node.b])
+    const { proxy, queue } = hookToCode()
+    proxy.a = 1
+    proxy.b = 2
+    const res = await proxy.Array.from([proxy.a, proxy.b])
     console.log(res)
-    await node.clear()
-    const { endClear: endClear2, proxy: node2 } = hookToCode()
+    await proxy.clear()
+    const { proxy: proxy2 } = hookToCode()
     // 还可以再拿到的 a 和 b
-    const res2 = await node2.Array.from([node2.a, node2.b])
+    const res2 = await proxy2.Array.from([proxy2.a, proxy2.b])
     console.log(res2)
-    await node.clear()
+    await proxy.clear()
     expect(res2).toStrictEqual([1, 2])
   })
   test(`readme 中的 demo`, async () => {
-    const { proxy: node } = hookToCode()
+    const { proxy } = hookToCode()
     
-    node.a = 1
-    node.b = 2
-    const res = await node.Math.max(node.a, node.b)
-    await node.clear()
+    proxy.a = 1
+    proxy.b = 2
+    const res = await proxy.Math.max(proxy.a, proxy.b)
+    await proxy.clear()
     expect(res).toStrictEqual(2)
   })
   test(`解构`, async () => {
-    const { proxy: node } = hookToCode()
-    const { Math } = node
-    let {globalThis: {a, b}} = node
+    const { proxy } = hookToCode()
+    const { Math } = proxy
+    let {globalThis: {a, b}} = proxy
     a = 1
     b = 2
-    node.c = 3
-    const res = await Math.max(a, b, node.c)
-    await node.clear()
+    proxy.c = 3
+    const res = await Math.max(a, b, proxy.c)
+    await proxy.clear()
     expect(res).toStrictEqual(3)
   })
-  test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 Math.max 和 endClear 中获取错误`, async () => {
-    const { proxy: node } = hookToCode()
-    const { Math } = node
-    let {undeclaredVariablesA, undeclaredVariablesB} = node
+  test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 Math.max 和 clear 中获取错误`, async () => {
+    const { proxy } = hookToCode()
+    const { Math } = proxy
+    let {undeclaredVariablesA, undeclaredVariablesB} = proxy
     const res = await Math.max(undeclaredVariablesA, undeclaredVariablesB).catch(String)
     console.log(res)
-    await node.clear().catch(String)
+    await proxy.clear().catch(String)
     expect(res).toStrictEqual(`Error: ReferenceError: undeclaredVariablesA is not defined`)
   })
-  test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 catch 例如 endClear 中获取错误(由于异步实现, 不能即时获取错误)`, async () => {
-    const { proxy: node } = hookToCode()
-    let {undeclaredVariablesA, undeclaredVariablesB} = node
-    const res = await node.clear().catch(String)
+  test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 catch 例如 clear 中获取错误(由于异步实现, 不能即时获取错误)`, async () => {
+    const { proxy } = hookToCode()
+    let {undeclaredVariablesA, undeclaredVariablesB} = proxy
+    const res = await proxy.clear().catch(String)
     console.log(res)
     expect(res).toStrictEqual(`Error: ReferenceError: undeclaredVariablesA is not defined`)
   })
-  test(`获取错误信息 -- 调用不存在的方法, 在 endClear 中获取之前未捕获的错误`, async () => {
-    const { proxy: node } = hookToCode()
-    node.a.b.c()
-    const res = await node.clear().catch(String)
+  test(`获取错误信息 -- 调用不存在的方法, 在 clear 中获取之前未捕获的错误`, async () => {
+    const { proxy } = hookToCode()
+    proxy.a.b.c()
+    const res = await proxy.clear().catch(String)
     console.log(res)
     expect(res).toStrictEqual(`Error: TypeError: Cannot read properties of undefined (reading 'c')`)
   })
-  test(`获取错误信息 -- 调用不存在的方法, 在 endClear 中也抛出同样的错误`, async () => {
+  test(`获取错误信息 -- 调用不存在的方法, 在 clear 中也抛出同样的错误`, async () => {
     const err = `Error: TypeError: Cannot read properties of undefined (reading 'c')`
-    const { proxy: node } = hookToCode()
-    const res1 = await node.a.b.c().catch(String)
-    const res2 = await node.clear().catch(String)
+    const { proxy } = hookToCode()
+    const res1 = await proxy.a.b.c().catch(String)
+    const res2 = await proxy.clear().catch(String)
     console.log(res1, res2)
     expect(res1).toStrictEqual(err)
     && expect(res2).toStrictEqual(err)
   })
   test(`当返回值为 undefined 时收到的是 null -- 因为 json 不支持 undefined`, async () => {
-    const { proxy: node } = hookToCode()
-    const res = await node.console.log(`hello`)
+    const { proxy } = hookToCode()
+    const res = await proxy.console.log(`hello`)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toBe(null)
   })
   test(`向函数传字面量 -- 数字`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    const res = await node.Math.max(1,2,3)
+    const { proxy, queue } = hookToCode()
+    const res = await proxy.Math.max(1,2,3)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(3)
   })
   test(`向函数传字面量 -- 字符串`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = `hello`
-    const res = await node.String(data)
+    const res = await proxy.String(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   test(`向函数传字面量 -- 布尔值`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    const res = await node.Boolean(true)
+    const { proxy, queue } = hookToCode()
+    const res = await proxy.Boolean(true)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(true)
   })
   
   test(`向函数传字面量 -- null`, async () => {
-    const { proxy: node, queue, userData } = hookToCode()
-    const arr = node.Array()
+    const { proxy, queue, userData } = hookToCode()
+    const arr = proxy.Array()
     arr.push(null)
     const res = await arr
-    await node.clear()
+    await proxy.clear()
     console.log(res)
     expect(res).toStrictEqual([null])
   })
   
   test(`向函数传字面量 -- undefined`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    const arr = node.Array()
+    const { proxy, queue } = hookToCode()
+    const arr = proxy.Array()
     arr.push(undefined)
     const res = await arr
-    await node.clear()
+    await proxy.clear()
     console.log(res)
     expect(res).toStrictEqual([null])
   })
   test(`向函数传对象 -- 对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = {a: 1, b: 2}
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   test(`向函数传对象 -- 对象中包含代理的方法调用`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    const max = node.Math.max(1, 2)
+    const { proxy, queue } = hookToCode()
+    const max = proxy.Math.max(1, 2)
     const data = {a: 1, b: 2, max}
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual({
       a: 1, b: 2, max: 2
     })
   })
   test(`向函数传对象 -- 数组`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = [{a: 1, b: 2}]
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   
   test(`向函数传对象 -- 嵌套对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = {a: {b: {c: 3}}}
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   
   test(`向函数传对象 -- 数组中包含对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = [{a: 1}, {b: 2}]
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   
   test(`向函数传对象 -- 对象中包含数组`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = {a: [1, 2, 3]}
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   
   test(`向函数传对象 -- 深层嵌套对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = {a: {b: {c: {d: 4}}}}
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   
   test.todo(`向函数传对象 -- 包含函数`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const func = () => 42
     const data = {a: func}
-    const res = await node.Object(data)
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res.a()).toStrictEqual(42)
   })
   
   test(`向函数传对象 -- 包含代理对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = 1
-    const data = {a: node.a}
-    const res = await node.Object(data)
+    const { proxy, queue } = hookToCode()
+    proxy.a = 1
+    const data = {a: proxy.a}
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual({a: 1})
   })
   
   test(`向函数传对象 -- 包含嵌套代理对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = {b: 2}
-    const data = {a: node.a}
-    const res = await node.Object(data)
+    const { proxy, queue } = hookToCode()
+    proxy.a = {b: 2}
+    const data = {a: proxy.a}
+    const res = await proxy.Object(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual({a: {b: 2}})
   })
   
   test(`向函数传对象 -- 包含数组和代理对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = 1
-    const data = [node.a, 2, 3]
-    const res = await node.Array.from(data)
+    const { proxy, queue } = hookToCode()
+    proxy.a = 1
+    const data = [proxy.a, 2, 3]
+    const res = await proxy.Array.from(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual([1, 2, 3])
   })
   
   test(`向函数传对象 -- 包含嵌套数组和代理对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = {b: 2}
-    const data = [node.a, {c: 3}]
-    const res = await node.Array.from(data)
+    const { proxy, queue } = hookToCode()
+    proxy.a = {b: 2}
+    const data = [proxy.a, {c: 3}]
+    const res = await proxy.Array.from(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual([{b: 2}, {c: 3}])
   })
   
   test(`向函数传对象 -- 包含嵌套数组和对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
+    const { proxy, queue } = hookToCode()
     const data = [{a: [1, 2]}, {b: [3, 4]}]
-    const res = await node.Array.from(data)
+    const res = await proxy.Array.from(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual(data)
   })
   
   test(`向函数传对象 -- 包含嵌套数组和对象及代理对象`, async () => {
-    const { proxy: node, queue } = hookToCode()
-    node.a = {b: 2}
-    const data = [{a: [node.a, 2]}, {b: [3, 4]}]
-    const res = await node.Array.from(data)
+    const { proxy, queue } = hookToCode()
+    proxy.a = {b: 2}
+    const data = [{a: [proxy.a, 2]}, {b: [3, 4]}]
+    const res = await proxy.Array.from(data)
     console.log(res)
-    await node.clear()
+    await proxy.clear()
     expect(res).toStrictEqual([{a: [{b: 2}, 2]}, {b: [3, 4]}])
   })
 }, 0)
