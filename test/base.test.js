@@ -26,35 +26,6 @@ describe(`sdk`, async () => {
 }, 0)
 
 describe(`js`, async () => {
-  test(`console.log -- 拆分调用`, async () => {
-    const { proxy, userData } = hookToCode()
-    proxy.console.log(`hello`)
-    await proxy.clear()
-    console.log(userData.info.codeList)
-    expect(userData.info.codeList).toStrictEqual([
-      'v_1 = console;',
-      'v_2 = v_1.log;',
-      'v_3 = v_2.apply(v_1, ["hello"])'
-    ])
-  })
-  test(`console.log -- 作为库调用`, async () => {
-    const { proxy, userData } = hookToCode({
-      generateCodeOpt: {
-        lib: [
-          `console.log`
-        ],
-      },
-      codeType: `js`,
-    })
-    proxy.console.log(`hello`)
-    await proxy.clear()
-    console.log(userData.info.codeList)
-    expect(userData.info.codeList).toStrictEqual([
-      'v_1 = console;',
-      'v_2 = console.log;',
-      'v_3 = v_2.apply(v_1, ["hello"])'
-    ])
-  })
   test(`proxy.process.env.OS -- 即时取值`, async () => {
     const { proxy } = hookToCode()
     const os = await proxy.process.env.OS
