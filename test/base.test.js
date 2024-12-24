@@ -2,6 +2,7 @@ require(`util`).inspect.defaultOptions.depth = 4 // console.log 展开对象
 
 import { describe, expect, test } from 'vitest'
 const hookToCode = require(`../hookToCode.js`)
+const util = require(`../util.js`)
 
 describe(`sdk`, async () => {
   const sdk = await require(`../sdkPromise.js`)
@@ -166,15 +167,21 @@ describe(`js`, async () => {
   })
   test(`获取错误信息 -- 调用不存在的方法, 在 clear 中获取之前未捕获的错误`, async () => {
     const { proxy } = hookToCode({sdk})
-    proxy.a.b.c()
+    const a = util.guid()
+    const b = util.guid()
+    const c = util.guid()
+    proxy[a][b][c]()
     const res = await proxy.clear().catch(String)
     console.log(res)
-    expect(res).toStrictEqual(`TypeError: Cannot read properties of undefined (reading 'c')`)
+    expect(res).toStrictEqual(`ReferenceError: ${a} is not defined`)
   })
   test(`获取错误信息 -- 调用不存在的方法, 在 clear 中也抛出同样的错误`, async () => {
-    const err = `TypeError: Cannot read properties of undefined (reading 'c')`
     const { proxy } = hookToCode({sdk})
-    const res1 = await proxy.a.b.c().catch(String)
+    const a = util.guid()
+    const b = util.guid()
+    const c = util.guid()
+    const err = `ReferenceError: ${a} is not defined`
+    const res1 = await proxy[a][b][c]().catch(String)
     const res2 = await proxy.clear().catch(String)
     console.log(res1, res2)
     expect(res1).toStrictEqual(err)
@@ -305,28 +312,31 @@ describe(`js`, async () => {
   
   test(`向函数传对象 -- 包含代理对象`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = 1
-    const data = {a: proxy.a}
+    const id = util.guid()
+    proxy[id] = 1
+    const data = {[id]: proxy[id]}
     const res = await proxy.Object(data)
     console.log(res)
     await proxy.clear()
-    expect(res).toStrictEqual({a: 1})
+    expect(res).toStrictEqual({[id]: 1})
   })
   
   test(`向函数传对象 -- 包含嵌套代理对象`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = {b: 2}
-    const data = {a: proxy.a}
+    const id = util.guid()
+    proxy[id] = {b: 2}
+    const data = {[id]: proxy[id]}
     const res = await proxy.Object(data)
-    console.log(res)
+    console.log({res})
     await proxy.clear()
-    expect(res).toStrictEqual({a: {b: 2}})
+    expect(res).toStrictEqual({[id]: {b: 2}})
   })
   
   test(`向函数传对象 -- 包含数组和代理对象`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = 1
-    const data = [proxy.a, 2, 3]
+    const id = util.guid()
+    proxy[id] = 1
+    const data = [proxy[id], 2, 3]
     const res = await proxy.Array.from(data)
     console.log(res)
     await proxy.clear()
@@ -335,8 +345,9 @@ describe(`js`, async () => {
   
   test(`向函数传对象 -- 包含嵌套数组和代理对象`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = {b: 2}
-    const data = [proxy.a, {c: 3}]
+    const id = util.guid()
+    proxy[id] = {b: 2}
+    const data = [proxy[id], {c: 3}]
     const res = await proxy.Array.from(data)
     console.log(res)
     await proxy.clear()
@@ -354,12 +365,13 @@ describe(`js`, async () => {
   
   test(`向函数传对象 -- 包含嵌套数组和对象及代理对象`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = {b: 2}
-    const data = [{a: [proxy.a, 2]}, {b: [3, 4]}]
+    const id = util.guid()
+    proxy[id] = {b: 2}
+    const data = [{[id]: [proxy[id], 2]}, {b: [3, 4]}]
     const res = await proxy.Array.from(data)
     console.log(res)
     await proxy.clear()
-    expect(res).toStrictEqual([{a: [{b: 2}, 2]}, {b: [3, 4]}])
+    expect(res).toStrictEqual([{[id]: [{b: 2}, 2]}, {b: [3, 4]}])
   })
 }, 0)
 describe(`mainRunerOnce`, async () => {
