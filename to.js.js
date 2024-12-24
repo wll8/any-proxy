@@ -173,6 +173,7 @@ function tool(config) {
   class CodeRunTool {
     constructor() {
       this.errList = []
+      this.delayList = []
     }
     /**
      * 运行代码片段
@@ -200,6 +201,28 @@ function tool(config) {
     }
 
     /**
+     * 保存即将运行的代码片段
+     * @param {*} code 
+     * @returns 
+     */
+    addDelayList(code) {
+      this.delayList.push(code)
+    }
+
+    /**
+     * 运行保存的代码片段
+     * @returns 
+     */
+    async runDelayList(code) {
+      const newCode = this.delayList.length ? [
+        ...this.delayList,
+        code,
+        this.getClearVarCode(),
+      ].join(`\n`) : ``
+      return newCode ? this.run(newCode) : undefined
+    }
+
+    /**
      * 转换错误信息
      */
     getError() {
@@ -219,11 +242,19 @@ function tool(config) {
      * @returns 
      */
     async clearVar ()  {
+      const code = this.getClearVarCode()
+      return code ? this.run(code) : undefined
+    }
+    /**
+     * 获取清除变量的代码
+     * @returns 
+     */
+    getClearVarCode ()  {
       const code = codeList.map(line => {
         const name = codeStrTool.getVarName(line)
         return name ? `delete ${name};` : ``
       }).filter(Boolean).join(`\n`)
-      return code ? this.run(code) : undefined
+      return code || ``
     }
   }
   const codeRunTool = new CodeRunTool()
