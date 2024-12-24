@@ -1,3 +1,5 @@
+const util = require('./util.js')
+
 function getPath(id, list) {
   const path = [];
   let currentId = id;
@@ -180,10 +182,10 @@ function tool(config) {
      * @param {*} code 
      * @returns 
      */
-    run(code) {
+    run(code, ignoreErr = false) {
       return new Promise(async (resolve, reject) => {
         try {
-          if(this.errList.length) {
+          if(!ignoreErr && this.errList.length) {
             return reject(this.getError())
           }
           // 由于 js 只有一个返回值, 所以只取一个
@@ -217,9 +219,19 @@ function tool(config) {
       const newCode = this.delayList.length ? [
         ...this.delayList,
         code,
-        this.getClearVarCode(),
       ].join(`\n`) : ``
-      return newCode ? this.run(newCode) : undefined
+      const p = new Promise(async (resolve, reject) => {
+        this.run(newCode).then( res => {
+          this.clearVar(true).catch(err => err).finally(() => {
+            resolve(res)
+          })
+        }).catch( err => {
+          this.clearVar(true).catch(err => err).finally(() => {
+            reject(err)
+          })
+        })
+      })
+      return p
     }
 
     /**
@@ -241,9 +253,9 @@ function tool(config) {
      * 清除变量
      * @returns 
      */
-    async clearVar ()  {
+    async clearVar (ignoreErr)  {
       const code = this.getClearVarCode()
-      return code ? this.run(code) : undefined
+      return code ? this.run(code, ignoreErr) : undefined
     }
     /**
      * 获取清除变量的代码

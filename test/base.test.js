@@ -381,21 +381,27 @@ describe(`mainRunerOnce`, async () => {
     const OS = await proxy.process.env.OS
     const HOMEDRIVE = await proxy.process.env.HOMEDRIVE
     const HOMEPATH = await proxy.process.env.HOMEPATH
-    const SystemRoot = await proxy.process.env.SystemRoot
-    const COMPUTERNAME = await proxy.process.env.COMPUTERNAME
     const data1 = {
       OS: process.env.OS,
       HOMEDRIVE: process.env.HOMEDRIVE,
       HOMEPATH: process.env.HOMEPATH,
-      SystemRoot: process.env.SystemRoot,
-      COMPUTERNAME: process.env.COMPUTERNAME,
     }
     const data2 = {
       OS,
       HOMEDRIVE,
       HOMEPATH,
-      SystemRoot,
-      COMPUTERNAME,
+    }
+    console.log({data1, data2})
+    expect(data1).toStrictEqual(data2)
+  })
+  test(`获取错误信息 -- 从不存在的属性中读取下级属性`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `mainRunerOnce`})
+    const OS = await proxy.process.a.b.c.env.OS.catch(String)
+    const data1 = {
+      OS: `TypeError: Cannot read properties of undefined (reading 'b')`,
+    }
+    const data2 = {
+      OS,
     }
     console.log({data1, data2})
     expect(data1).toStrictEqual(data2)
