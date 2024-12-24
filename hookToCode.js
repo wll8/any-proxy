@@ -1,8 +1,10 @@
 const util = require(`./util.js`)
 const proxyHook = require(`./proxyHook.js`)
 const tool = require(`./to.js.js`)
-const hookRun = ({sdk}) => {
-  const opt = {
+const hookRun = (opt) => {
+  opt = Object.assign({
+    sdk: undefined,
+    runType: `mainRuner`,
     clearKey: `clear`,
     exitKey: `exit`,
     idKey: `idKey_${util.guid()}`, // 当前id
@@ -15,9 +17,9 @@ const hookRun = ({sdk}) => {
         endLine: ``,
       },
     },
-  }
+  }, opt)
   const jsTool = tool({
-    sdk,
+    sdk: opt.sdk,
     proxyTag: opt.proxyTag,
   })
   const queue = new util.TaskQueue()
@@ -44,19 +46,27 @@ const hookRun = ({sdk}) => {
         }
         const promise = new Promise(async (resolve, reject) => {
           queue.addTask(async () => {
-            const code = jsTool.codeStrTool.getReturnCode(data.parent)
-            return jsTool.codeRunTool.run(code).then(res => {
-              resolve(res)
-            }).catch(err => {
-              reject(err)
-            })
+            if([`mainRuner`].includes(opt.runType)) {
+              const code = jsTool.codeStrTool.getReturnCode(data.parent)
+              return jsTool.codeRunTool.run(code).then(resolve).catch(reject)
+            }
+            if([`mainRunerOnce`].includes(opt.runType)) {
+              const code = jsTool.codeStrTool.getReturnCode(data.parent)
+              return jsTool.codeRunTool.runDelayList(code).then(resolve).catch(reject)
+            }
           })
         })
         return promise[data.key].bind(promise)
       } else {
         queue.addTask(async () => {
-          const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
-          return jsTool.codeRunTool.run(code)
+          if([`mainRuner`].includes(opt.runType)) {
+            const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
+            return jsTool.codeRunTool.run(code)
+          }
+          if([`mainRunerOnce`].includes(opt.runType)) {
+            const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
+            return jsTool.codeRunTool.addDelayList(code)
+          }
         })
       }
       return _this.nest(data.fn)

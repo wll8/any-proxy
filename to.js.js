@@ -209,6 +209,9 @@ function tool(config) {
       err.formatEndLine = codeStrTool.replaceIdsWithKeys({
         str: err.endLine,
       })
+      err.toString = () => {
+        return err.message
+      }
       return err
     }
     /**

@@ -155,24 +155,24 @@ describe(`js`, async () => {
     const res = await Math.max(undeclaredVariablesA, undeclaredVariablesB).catch(String)
     console.log(res)
     await proxy.clear().catch(String)
-    expect(res).toStrictEqual(`Error: ReferenceError: undeclaredVariablesA is not defined`)
+    expect(res).toStrictEqual(`ReferenceError: undeclaredVariablesA is not defined`)
   })
   test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 catch 例如 clear 中获取错误(由于异步实现, 不能即时获取错误)`, async () => {
     const { proxy } = hookToCode({sdk})
     let {undeclaredVariablesA, undeclaredVariablesB} = proxy
     const res = await proxy.clear().catch(String)
     console.log(res)
-    expect(res).toStrictEqual(`Error: ReferenceError: undeclaredVariablesA is not defined`)
+    expect(res).toStrictEqual(`ReferenceError: undeclaredVariablesA is not defined`)
   })
   test(`获取错误信息 -- 调用不存在的方法, 在 clear 中获取之前未捕获的错误`, async () => {
     const { proxy } = hookToCode({sdk})
     proxy.a.b.c()
     const res = await proxy.clear().catch(String)
     console.log(res)
-    expect(res).toStrictEqual(`Error: TypeError: Cannot read properties of undefined (reading 'c')`)
+    expect(res).toStrictEqual(`TypeError: Cannot read properties of undefined (reading 'c')`)
   })
   test(`获取错误信息 -- 调用不存在的方法, 在 clear 中也抛出同样的错误`, async () => {
-    const err = `Error: TypeError: Cannot read properties of undefined (reading 'c')`
+    const err = `TypeError: Cannot read properties of undefined (reading 'c')`
     const { proxy } = hookToCode({sdk})
     const res1 = await proxy.a.b.c().catch(String)
     const res2 = await proxy.clear().catch(String)
