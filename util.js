@@ -1,3 +1,15 @@
+/**
+ * 生成 guid
+ * @param {string} format 格式
+ */
+function guid(format = 'gxxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx') {
+  return format.replace(/[x]/g, function (c) {
+    // eslint-disable-next-line
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+  })
+}
+
 const sleep = (ms = 1e3) => {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -55,4 +67,5 @@ class TaskQueue {
 module.exports = {
   TaskQueue,
   sleep,
+  guid,
 }

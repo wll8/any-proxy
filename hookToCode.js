@@ -1,15 +1,13 @@
-const proxyHook = require(`./proxyHook.js`)
 const util = require(`./util.js`)
-const transform = require(`./transform.js`)
-const hookToCode = (opt = {}) => {
-  opt = Object.assign({
-    codeType: `js`, // js | aardio
-    generateCodeOpt: {}, // object
+const proxyHook = require(`./proxyHook.js`)
+const tool = require(`./to.js.js`)
+const hookRun = ({sdk}) => {
+  const opt = {
     clearKey: `clear`,
     exitKey: `exit`,
-  }, opt)
-  const queue = new util.TaskQueue()
-  const { proxy, proxyTag, userData } = proxyHook({
+    idKey: `idKey_${util.guid()}`, // 当前id
+    parentKey: `parentKey_${util.guid()}`, // 父级id
+    proxyTag: `proxyTag_${util.guid()}`, // 有这个标记这说明是代理对象
     userData: {
       info: {
         dataList: [],
@@ -17,15 +15,19 @@ const hookToCode = (opt = {}) => {
         endLine: ``,
       },
     },
+  }
+  const jsTool = tool({
+    sdk,
+    proxyTag: opt.proxyTag,
+  })
+  const queue = new util.TaskQueue()
+  const { proxy, proxyTag, userData } = proxyHook({
+    userData: opt.userData,
+    idKey: opt.idKey,
+    parentKey: opt.parentKey,
+    proxyTag: opt.proxyTag,
     hook(...args) {
-      const transformFn = async () => transform({
-        to: opt.codeType,
-        proxyTag,
-        list: _this.info.dataList,
-        ...opt.generateCodeOpt,
-      })
       const [_this, data] = args
-      info = _this.info
       if (data.type === `get` && [
         `then`,
         `catch`,
@@ -34,43 +36,16 @@ const hookToCode = (opt = {}) => {
       ].includes(data.key)) { // 这些方法自运行
         if([opt.clearKey].includes(data.key)) {
           const promiseFn = () => new Promise(async (resolve, reject) => {
-            const {
-              getError,
-              clearVar,
-            } = await transformFn()
+            await util.sleep(0)
             await queue.awaitEnd().catch(reject)
-            if(queue.errList.length) {
-              const err = getError({
-                info: _this.info,
-                generateCodeOpt: opt.generateCodeOpt,
-                errList: queue.errList,
-                path: _this.path,
-              })
-              return reject(err)
-            }
-            await clearVar().then(resolve).catch(reject)
+            await jsTool.codeRunTool.clearVar().then(resolve).catch(reject)
           })
           return promiseFn
         }
         const promise = new Promise(async (resolve, reject) => {
           queue.addTask(async () => {
-            if(queue.errList.length) {
-              const { getError } = await transformFn()
-              const err = getError({
-                info: _this.info,
-                generateCodeOpt: opt.generateCodeOpt,
-                errList: queue.errList,
-                path: _this.path,
-              })
-              return reject(err)
-            }
-            const {
-              awaitCb,
-              run,
-            } = await transformFn()
-            const snedLine = awaitCb(args)
-            _this.info.codeList.push(snedLine)
-            return run(snedLine).then(res => {
+            const code = jsTool.codeStrTool.getReturnCode(data.parent)
+            return jsTool.codeRunTool.run(code).then(res => {
               resolve(res)
             }).catch(err => {
               reject(err)
@@ -80,30 +55,16 @@ const hookToCode = (opt = {}) => {
         return promise[data.key].bind(promise)
       } else {
         queue.addTask(async () => {
-          if(queue.errList.length) {
-            return []
-          }
-          _this.info.dataList.push(data)
-          const {
-            getCode,
-            run,
-          } = await transformFn()
-          const code = getCode()
-          const line = code.at(-1)
-          _this.info.endLine = line
-          _this.info.codeList.push(_this.info.endLine)
-          return run(_this.info.endLine)
+          const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
+          return jsTool.codeRunTool.run(code)
         })
       }
       return _this.nest(data.fn)
     },
   })
   return {
-    queue,
     proxy,
-    proxyTag,
-    userData,
   }
 }
 
-module.exports = hookToCode
+module.exports = hookRun

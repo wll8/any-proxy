@@ -1,16 +1,5 @@
 const DeepProxy = require(`proxy-deep`)
-
-/**
- * 生成 guid
- * @param {string} format 格式
- */
-function guid(format = 'gxxxxxxxx_xxxx_xxxx_xxxx_xxxxxxxxxxxx') {
-  return format.replace(/[x]/g, function (c) {
-    // eslint-disable-next-line
-    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8)
-    return v.toString(16)
-  })
-}
+const util = require(`./util.js`)
 
 function deepTraverseAndReplace(item, { idKey, proxyTag } = {}) {
   // 判断是否是对象或数组
@@ -47,20 +36,20 @@ module.exports = (opt = {}) => {
     userData: {}, // object
     id: ``, // string
     hook: () => {}, // function
+    idKey: `idKey_${util.guid()}`, // 当前id
+    parentKey: `parentKey_${util.guid()}`, // 父级id
+    proxyTag: `proxyTag_${util.guid()}`, // 有这个标记这说明是代理对象
   }, opt)
   let startId = 0
   const getId = () => {
     startId = startId + 1
     return String(`_${startId}`)
   }
-  const idKey = `idKey_${guid()}` // 当前id
-  const parentKey = `parentKey_${guid()}` // 父级id
-  const proxyTag = `proxyTag_${guid()}` // 有这个标记这说明是代理对象
   const getFn = ({ parent, id = getId() } = {}) => {
     const fn = () => { }
-    fn[idKey] = id
-    fn[parentKey] = parent
-    fn[proxyTag] = true
+    fn[opt.idKey] = id
+    fn[opt.parentKey] = parent
+    fn[opt.proxyTag] = true
     return {
       fn,
       id,
@@ -70,11 +59,11 @@ module.exports = (opt = {}) => {
   const { fn, id, parent } = getFn({ id: opt.id })
   const proxy = new DeepProxy(fn, {
     get(target, key, receiver) {
-      if ([idKey, proxyTag].includes(key)) {
+      if ([opt.idKey, opt.proxyTag].includes(key)) {
         return Reflect.get(target, key, receiver);
       } else {
         const data = {
-          ...getFn({ parent: target[idKey] }),
+          ...getFn({ parent: target[opt.idKey] }),
           type: `get`,
           key,
         }
@@ -83,19 +72,19 @@ module.exports = (opt = {}) => {
     },
     apply(target, thisArg, args) {
       const data = {
-        ...getFn({ parent: target[idKey] }),
+        ...getFn({ parent: target[opt.idKey] }),
         type: `apply`,
-        args: deepTraverseAndReplace(args, { idKey, proxyTag }),
-        thisArgId: thisArg[idKey],
+        args: deepTraverseAndReplace(args, { idKey: opt.idKey, proxyTag: opt.proxyTag }),
+        thisArgId: thisArg[opt.idKey],
       }
       return opt.hook(this, data)
     },
     set(target, key, value) {
       const data = {
-        ...getFn({ parent: target[idKey] }),
+        ...getFn({ parent: target[opt.idKey] }),
         type: `set`,
         key,
-        value: deepTraverseAndReplace(value, { idKey, proxyTag }),
+        value: deepTraverseAndReplace(value, { idKey: opt.idKey, proxyTag: opt.proxyTag }),
       }
       return opt.hook(this, data)
     },
@@ -105,8 +94,8 @@ module.exports = (opt = {}) => {
   return {
     userData: opt.userData,
     proxy,
-    idKey,
-    parentKey,
-    proxyTag,
+    idKey: opt.idKey,
+    parentKey: opt.parentKey,
+    proxyTag: opt.proxyTag,
   }
 }
