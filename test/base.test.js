@@ -11,7 +11,7 @@ describe(`sdk`, async () => {
     const [resArgs] = await sdk.run([
       `
         return args
-      `, ...sendArgs
+      `, sendArgs
     ])
     expect(sendArgs).toStrictEqual(resArgs)
   })

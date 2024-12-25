@@ -1,3 +1,14 @@
+const {VM} = require('vm2');
+const vm = new VM({
+  require: {
+    external: true,
+    builtin: `*`,
+  },
+  sandbox: {
+    process,
+  }
+});
+
 /**
  * @see: https://www.hongqiye.com/doc/mockm/config/option.html
  * @type {import('mockm/@types/config').Config}
@@ -28,9 +39,11 @@ module.exports = util => {
  */
 async function run(ws, obj) {
   // todo fnArgs 中应支持使用参数名和参数值
-  const [fnStr, ...fnArgs] = obj.params
+  const [fnStr, fnArgs = [], cfg = {
+    runType: `mainRuner`
+  }] = obj.params
   console.log(`fnStr`, fnStr)
-  
+
   /**
    * 以 new Function 方式运行代码, 运行 require 时报错 require is not defined
    * @returns 
@@ -53,8 +66,47 @@ async function run(ws, obj) {
   let res = undefined
   let err = undefined
   try {
-    // const resObj = typeB()
-    const resObj = typeC()
+    const tab = {
+      /**
+       * 在宿主中运行
+       * @returns 
+       */
+      mainRuner: () => {
+        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
+        return eval(js)
+      },
+      /**
+       * 在宿主中运行
+       * @returns 
+       */
+      mainRunerOnce: () => {
+        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
+        return eval(js)
+      },
+      /**
+       * 在 vm 中运行
+       * @returns 
+       */
+      createRuner: () => {
+        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
+        const res = vm.run(`
+          eval(${JSON.stringify(js)})
+        `)
+        return res
+      },
+      /**
+       * 在临时 vm 中运行
+       * @returns 
+       */
+      createRunerOnce: () => {
+        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
+        const res = vm.run(`
+          eval(${JSON.stringify(js)})
+        `)
+        return res
+      },
+    }
+    const resObj = tab[cfg.runType]()
     res = JSON.parse(JSON.stringify(typeof(resObj) === `undefined` ? null : resObj))
   } catch (error) {
     err = String(error)
