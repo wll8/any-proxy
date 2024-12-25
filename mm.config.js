@@ -7,10 +7,41 @@ const getVm = () => {
     },
     sandbox: {
       process,
-    }
+      require,
+      __filename,
+    },
   });
   return vm
 }
+
+// 单例对象
+const vmRuner = (function() {
+  let instance; // 用于存储单例实例
+  let vm = getVm()
+  function init() {
+    // 单例对象的私有变量和方法
+    return {
+      run: function(code) {
+        try {
+          return vm.run(code)
+        } catch (error) {
+          vm = getVm()
+          throw error
+        }
+      },
+    };
+  }
+
+  return {
+    // 获取单例实例的方法
+    getVm: function() {
+      if (!instance) {
+        instance = init();
+      }
+      return instance;
+    }
+  };
+})();
 
 /**
  * @see: https://www.hongqiye.com/doc/mockm/config/option.html
@@ -91,6 +122,7 @@ async function run(ws, obj) {
        * @returns 
        */
       createRuner: () => {
+        const vm = vmRuner.getVm()
         const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         const res = vm.run(`
           eval(${JSON.stringify(js)})

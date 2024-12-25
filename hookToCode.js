@@ -47,7 +47,7 @@ const hookRun = (opt) => {
         }
         const promise = new Promise(async (resolve, reject) => {
           queue.addTask(async () => {
-            if([`mainRuner`].includes(opt.runType)) {
+            if([`mainRuner`, `createRuner`].includes(opt.runType)) {
               const code = jsTool.codeStrTool.getReturnCode(data.parent)
               return jsTool.codeRunTool.run(code).then(resolve).catch(reject)
             }
@@ -64,7 +64,7 @@ const hookRun = (opt) => {
         return promise[data.key].bind(promise)
       } else {
         queue.addTask(async () => {
-          if([`mainRuner`].includes(opt.runType)) {
+          if([`mainRuner`, `createRuner`].includes(opt.runType)) {
             const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
             return jsTool.codeRunTool.run(code)
           }
