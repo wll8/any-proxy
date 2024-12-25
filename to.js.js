@@ -29,6 +29,7 @@ function tool(config) {
     variableKeyword: ``,
     lib: [],
     sdk: undefined,
+    runType: `mainRuner`,
   }, config)
 
   /**
@@ -47,11 +48,11 @@ function tool(config) {
   /**
    * 保存传入的 dataListItem
    */
-  const dataList = [];
+  let dataList = [];
   /**
    * 保存生成的代码
    */
-  const codeList = [];
+  let codeList = [];
 
   /**
    * 将 dataListItem 转换为代码片段
@@ -189,7 +190,9 @@ function tool(config) {
             return reject(this.getError())
           }
           // 由于 js 只有一个返回值, 所以只取一个
-          config.sdk.run(code).then(([res]) => {
+          config.sdk.run([code, [], {
+            runType: config.runType,
+          }]).then(([res]) => {
             resolve(res)
           }).catch(err => {
             this.errList.push(err)
@@ -221,6 +224,11 @@ function tool(config) {
         code,
       ].join(`\n`) : ``
       const p = new Promise(async (resolve, reject) => {
+        if([`createRunerOnce`].includes(config.runType)) {
+          codeList = []
+          this.delayList = []
+          return this.run(newCode).then(resolve).catch(reject)
+        }
         this.run(newCode).then( res => {
           this.clearVar(true).catch(err => err).finally(() => {
             resolve(res)

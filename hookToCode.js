@@ -20,6 +20,7 @@ const hookRun = (opt) => {
   }, opt)
   const jsTool = tool({
     sdk: opt.sdk,
+    runType: opt.runType,
     proxyTag: opt.proxyTag,
   })
   const queue = new util.TaskQueue()
@@ -54,6 +55,10 @@ const hookRun = (opt) => {
               const code = jsTool.codeStrTool.getReturnCode(data.parent)
               return jsTool.codeRunTool.runDelayList(code).then(resolve).catch(reject)
             }
+            if([`createRunerOnce`].includes(opt.runType)) {
+              const code = jsTool.codeStrTool.getReturnCode(data.parent)
+              return jsTool.codeRunTool.runDelayList(code).then(resolve).catch(reject)
+            }
           })
         })
         return promise[data.key].bind(promise)
@@ -64,6 +69,10 @@ const hookRun = (opt) => {
             return jsTool.codeRunTool.run(code)
           }
           if([`mainRunerOnce`].includes(opt.runType)) {
+            const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
+            return jsTool.codeRunTool.addDelayList(code)
+          }
+          if([`createRunerOnce`].includes(opt.runType)) {
             const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
             return jsTool.codeRunTool.addDelayList(code)
           }

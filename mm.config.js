@@ -1,13 +1,16 @@
 const {VM} = require('vm2');
-const vm = new VM({
-  require: {
-    external: true,
-    builtin: `*`,
-  },
-  sandbox: {
-    process,
-  }
-});
+const getVm = () => {
+  const vm = new VM({
+    require: {
+      external: true,
+      builtin: `*`,
+    },
+    sandbox: {
+      process,
+    }
+  });
+  return vm
+}
 
 /**
  * @see: https://www.hongqiye.com/doc/mockm/config/option.html
@@ -99,6 +102,7 @@ async function run(ws, obj) {
        * @returns 
        */
       createRunerOnce: () => {
+        const vm = getVm()
         const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         const res = vm.run(`
           eval(${JSON.stringify(js)})

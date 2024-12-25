@@ -430,3 +430,59 @@ describe(`mainRunerOnce`, async () => {
     expect(res).toStrictEqual([{[id]: [{b: 2}, 2]}, {b: [3, 4]}])
   })
 }, 0)
+describe(`createRunerOnce`, async () => {
+  const sdk = await require(`../sdkPromise.js`)
+  test(`node.process.env -- 即时取值`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `createRunerOnce`})
+    const OS = await proxy.process.env.OS
+    const HOMEDRIVE = await proxy.process.env.HOMEDRIVE
+    const HOMEPATH = await proxy.process.env.HOMEPATH
+    const data1 = {
+      OS: process.env.OS,
+      HOMEDRIVE: process.env.HOMEDRIVE,
+      HOMEPATH: process.env.HOMEPATH,
+    }
+    const data2 = {
+      OS,
+      HOMEDRIVE,
+      HOMEPATH,
+    }
+    console.log({data1, data2})
+    expect(data1).toStrictEqual(data2)
+  })
+  test(`获取错误信息 -- 从不存在的属性中读取下级属性`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `createRunerOnce`})
+    const OS = await proxy.process.a.b.c.env.OS.catch(String)
+    const data1 = {
+      OS: `TypeError: Cannot read properties of undefined (reading 'b')`,
+    }
+    const data2 = {
+      OS,
+    }
+    console.log({data1, data2})
+    expect(data1).toStrictEqual(data2)
+  })
+  test(`向函数传对象 -- 数组`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `createRunerOnce`})
+    const data = [{a: 1, b: 2}]
+    const res = await proxy.Object(data)
+    console.log(res)
+    expect(res).toStrictEqual(data) 
+  })
+  test(`向函数传对象 -- 嵌套对象`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `createRunerOnce`})
+    const data = {a: {b: {c: 3}}}
+    const res = await proxy.Object(data)
+    console.log(res)
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传对象 -- 包含嵌套数组和对象及代理对象`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `createRunerOnce`})
+    const id = util.guid()
+    proxy[id] = {b: 2}
+    const data = [{[id]: [proxy[id], 2]}, {b: [3, 4]}]
+    const res = await proxy.Array.from(data)
+    console.log(res)
+    expect(res).toStrictEqual([{[id]: [{b: 2}, 2]}, {b: [3, 4]}])
+  })
+}, 10 * 1e3)
