@@ -78,25 +78,6 @@ async function run(ws, obj) {
   }] = obj.params
   console.log(`fnStr`, fnStr)
 
-  /**
-   * 以 new Function 方式运行代码, 运行 require 时报错 require is not defined
-   * @returns 
-   */
-  function typeB() {
-    const argNameList = fnArgs.map((item, index) => JSON.stringify(`arg${index}`)).join(`,`)
-    const fn = new Function(...argNameList, fnStr)
-    return fn(...fnArgs)
-  }
-  
-  /**
-   * 可以运行 require
-   * @returns 
-   */
-  function typeC() {
-    const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
-    return eval(js)
-  }
-  
   let res = undefined
   let err = undefined
   try {
@@ -105,15 +86,7 @@ async function run(ws, obj) {
        * 在宿主中运行
        * @returns 
        */
-      mainRuner: () => {
-        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
-        return eval(js)
-      },
-      /**
-       * 在宿主中运行
-       * @returns 
-       */
-      mainRunerOnce: () => {
+      main: () => {
         const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         return eval(js)
       },
@@ -121,8 +94,7 @@ async function run(ws, obj) {
        * 在 vm 中运行
        * @returns 
        */
-      createRuner: () => {
-        const vm = vmRuner.getVm()
+      createRuner: (vm) => {
         const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         const res = vm.run(`
           eval(${JSON.stringify(js)})
@@ -133,8 +105,7 @@ async function run(ws, obj) {
        * 在临时 vm 中运行
        * @returns 
        */
-      createRunerOnce: () => {
-        const vm = getVm()
+      createRunerOnce: (vm) => {
         const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         const res = vm.run(`
           eval(${JSON.stringify(js)})
@@ -142,7 +113,14 @@ async function run(ws, obj) {
         return res
       },
     }
-    const resObj = tab[cfg.runType]()
+    let resObj = undefined
+    if([`mainRuner`, `mainRunerOnce`].includes(cfg.runType)) {
+      resObj = tab.main()
+    } else if([`createRuner`].includes(cfg.runType)) {
+      resObj = tab.createRuner(vmRuner.getVm())
+    } else if([`createRunerOnce`].includes(cfg.runType)) {
+      resObj = tab.createRuner(getVm())
+    }
     res = JSON.parse(JSON.stringify(typeof(resObj) === `undefined` ? null : resObj))
   } catch (error) {
     err = String(error)

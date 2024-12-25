@@ -24,9 +24,8 @@ describe(`sdk`, async () => {
     console.log(res)
     expect(res).toStrictEqual(`ReferenceError: undeclaredVariablesA is not defined`)
   })
-}, 0)
-
-describe(`js`, async () => {
+}, 10 * 1e3)
+describe(`mainRuner`, async () => {
   const sdk = await require(`../sdkPromise.js`)
   test(`proxy.process.env.OS -- 即时取值`, async () => {
     const { proxy } = hookToCode({sdk})
@@ -373,7 +372,7 @@ describe(`js`, async () => {
     await proxy.clear()
     expect(res).toStrictEqual([{[id]: [{b: 2}, 2]}, {b: [3, 4]}])
   })
-}, 0)
+}, 10 * 1e3)
 describe(`mainRunerOnce`, async () => {
   const sdk = await require(`../sdkPromise.js`)
   test(`node.process.env -- 即时取值`, async () => {
@@ -429,7 +428,7 @@ describe(`mainRunerOnce`, async () => {
     console.log(res)
     expect(res).toStrictEqual([{[id]: [{b: 2}, 2]}, {b: [3, 4]}])
   })
-}, 0)
+}, 10 * 1e3)
 describe(`createRuner`, async () => {
   const sdk = await require(`../sdkPromise.js`)
   test(`proxy.process.env.OS -- 即时取值`, async () => {
