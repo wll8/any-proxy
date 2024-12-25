@@ -406,4 +406,27 @@ describe(`mainRunerOnce`, async () => {
     console.log({data1, data2})
     expect(data1).toStrictEqual(data2)
   })
+  test(`向函数传对象 -- 数组`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `mainRunerOnce`})
+    const data = [{a: 1, b: 2}]
+    const res = await proxy.Object(data)
+    console.log(res)
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传对象 -- 嵌套对象`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `mainRunerOnce`})
+    const data = {a: {b: {c: 3}}}
+    const res = await proxy.Object(data)
+    console.log(res)
+    expect(res).toStrictEqual(data)
+  })
+  test(`向函数传对象 -- 包含嵌套数组和对象及代理对象`, async () => {
+    const { proxy } = hookToCode({sdk, runType: `mainRunerOnce`})
+    const id = util.guid()
+    proxy[id] = {b: 2}
+    const data = [{[id]: [proxy[id], 2]}, {b: [3, 4]}]
+    const res = await proxy.Array.from(data)
+    console.log(res)
+    expect(res).toStrictEqual([{[id]: [{b: 2}, 2]}, {b: [3, 4]}])
+  })
 }, 0)
