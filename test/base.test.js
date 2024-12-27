@@ -298,17 +298,44 @@ describe(`mainRuner`, async () => {
     await proxy.clear()
     expect(res).toStrictEqual(data)
   })
-  
-  test.todo(`向函数传对象 -- 包含函数`, async () => {
-    const { proxy, queue } = hookToCode({sdk})
-    const func = () => 42
-    const data = {a: func}
-    const res = await proxy.Object(data)
+  test(`迭代远程数组 -- 无需知道数组长度时`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const arr = proxy.String(`hello`).split(``)
+    const iterator = arr.values()
+    let item = await iterator.next();
+    let index = -1
+    while (!item.done) {
+      index = index + 1
+      if(item.value === `l`) {
+        break
+      }
+      item = await iterator.next();
+    }
+    const res = {index, value: item.value}
     console.log(res)
     await proxy.clear()
-    expect(res.a()).toStrictEqual(42)
+    expect(res).toStrictEqual({ index: 2, value: 'l' })
   })
-  
+  test(`迭代远程数组 -- 需要知道数组长度时`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const arr = proxy.String(`hello`).split(``)
+    const length = await arr.length
+    const iterator = arr.values()
+    let item = await iterator.next();
+    let index = -1
+    while (!item.done) {
+      index = index + 1
+      if(item.value === `l`) {
+        break
+      }
+      item = await iterator.next();
+    }
+    const res = {index, length, value: item.value}
+    console.log(res)
+    await proxy.clear()
+    expect(res).toStrictEqual({ index: 2, length: 5, value: 'l' })
+  })
+
   test(`向函数传对象 -- 包含代理对象`, async () => {
     const { proxy, queue } = hookToCode({sdk})
     const id = util.guid()
