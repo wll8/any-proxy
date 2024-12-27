@@ -1,6 +1,6 @@
 const WebSocket = require('websocket').w3cwebsocket;
 
-const wsLink = `ws://127.0.0.1:10005/rpc`;
+const wsLink = `ws://127.0.0.1:20005/rpc`;
 
 globalThis.sdkPromise = new Promise(async (resolve, reject) => {
   const sdk = {

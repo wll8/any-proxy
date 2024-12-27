@@ -49,9 +49,9 @@ const vmRuner = (function() {
  */
 module.exports = util => {
   return {
-    port: 10005,
-    testPort: 10006,
-    replayPort: 10007,
+    port: 20005,
+    testPort: 20006,
+    replayPort: 20007,
     api: {
       'ws /rpc'(ws, req) {
         ws.on('message', (msg) => {
