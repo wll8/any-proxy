@@ -302,16 +302,16 @@ describe(`mainRuner`, async () => {
     const { proxy } = hookToCode({sdk})
     const arr = proxy.String(`hello`).split(``)
     const iterator = arr.values()
-    let item = await iterator.next();
+    let state = await iterator.next();
     let index = -1
-    while (!item.done) {
+    while (!state.done) {
       index = index + 1
-      if(item.value === `l`) {
+      if(state.value === `l`) {
         break
       }
-      item = await iterator.next();
+      state = await iterator.next();
     }
-    const res = {index, value: item.value}
+    const res = {index, value: state.value}
     console.log(res)
     await proxy.clear()
     expect(res).toStrictEqual({ index: 2, value: 'l' })
@@ -321,16 +321,16 @@ describe(`mainRuner`, async () => {
     const arr = proxy.String(`hello`).split(``)
     const length = await arr.length
     const iterator = arr.values()
-    let item = await iterator.next();
+    let state = await iterator.next();
     let index = -1
-    while (!item.done) {
+    while (!state.done) {
       index = index + 1
-      if(item.value === `l`) {
+      if(state.value === `l`) {
         break
       }
-      item = await iterator.next();
+      state = await iterator.next();
     }
-    const res = {index, length, value: item.value}
+    const res = {index, length, value: state.value}
     console.log(res)
     await proxy.clear()
     expect(res).toStrictEqual({ index: 2, length: 5, value: 'l' })
