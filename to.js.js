@@ -65,16 +65,18 @@ function tool(config) {
     const { type, id, parent, key, thisArgId, args, value } = item;
     const typeObj = {
       'get'() {
-        const objVar = parent ? idToVarName[parent] : config.globalNamespace;
         const varName = generateVarName(id);
         idToVarName[id] = varName;
-        const prefix = parent ? `${objVar}.` : '';
-        const fullPath = getPath(id, dataList).map(item => item.key).join(`.`)
+        const fullPath = util.replaceIdsWithKeys(getPath(id, dataList).map(item => item.key).filter(item => {
+          return typeof(item) !== `undefined`
+        }).join(`.`))
         idToFullPath[id] = fullPath;
         if (config.lib.includes(idToFullPath[id])) {
           codeList.push(`${config.variableKeyword} ${varName} = ${idToFullPath[id]};`.trim())
         } else {
-          codeList.push(`${config.variableKeyword} ${varName} = ${prefix}${key};`.trim())
+          const objVar = parent ? idToVarName[parent] : config.globalNamespace;
+          const prefix = parent ? `${objVar}.` : '';
+          codeList.push(`${config.variableKeyword} ${varName} = ${util.replaceIdsWithKeys(`${prefix}${key}`)};`.trim())
         }
       },
       'apply'() {
@@ -100,7 +102,7 @@ function tool(config) {
       },
       'set'() {
         const objVar = parent ? idToVarName[parent] : config.globalNamespace;
-        const setKey = objVar ? `${objVar}.${key}` : key;
+        const setKey = util.replaceIdsWithKeys(objVar ? `${objVar}.${key}` : key);
         const valueArgs = String(value).startsWith(config.proxyTag) ? idToVarName[value.replace(config.proxyTag, '')] : JSON.stringify(value);
         codeList.push(`${setKey} = ${valueArgs};`)
       },

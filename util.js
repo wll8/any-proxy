@@ -62,7 +62,17 @@ class TaskQueue {
   }
 }
 
+/**
+ * 把类似 arr.1 转换为 arr[1]
+ * @param {*} str 
+ * @returns 
+ */
+function replaceIdsWithKeys(str) {
+  return str.replace(/\.(\d+)/g, '[$1]');
+}
+
 module.exports = {
+  replaceIdsWithKeys,
   TaskQueue,
   sleep,
   guid,

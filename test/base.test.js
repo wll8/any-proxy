@@ -186,6 +186,23 @@ describe(`mainRuner`, async () => {
     expect(res1).toStrictEqual(err)
     && expect(res2).toStrictEqual(err)
   })
+  test(`通过索引赋值`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const id = util.guid()
+    proxy[id] = [1, 2, 3, `4.4`]
+    proxy[id][1] = `h.1ello`
+    const res = await proxy[id][1]
+    console.log({res})
+    await proxy.clear()
+    expect(res).toStrictEqual(`h.1ello`)
+  })
+  test(`通过索引取值`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const res = await proxy.Array.from([1, 2, 3, `4.4`])[1]
+    console.log({res})
+    await proxy.clear()
+    expect(res).toStrictEqual(2)
+  })
   test(`当返回值为 undefined 时收到的是 null -- 因为 json 不支持 undefined`, async () => {
     const { proxy } = hookToCode({sdk})
     const res = await proxy.console.log(`hello`)
