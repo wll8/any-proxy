@@ -32,7 +32,7 @@ function deepTraverseAndReplace(item, { idKey, proxyTag } = {}) {
 }
 
 module.exports = (opt = {}) => {
-  opt = Object.assign({
+  opt = util.mergeWithoutUndefined({
     userData: {}, // object
     id: ``, // string
     hook: () => {}, // function

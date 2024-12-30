@@ -2,7 +2,7 @@ const util = require(`./util.js`)
 const proxyHook = require(`./proxyHook.js`)
 const tool = require(`./to.js.js`)
 const hookRun = (opt) => {
-  opt = Object.assign({
+  opt = util.mergeWithoutUndefined({
     sdk: undefined,
     runType: `mainRuner`,
     clearKey: `clear`,
@@ -19,9 +19,7 @@ const hookRun = (opt) => {
     },
   }, opt)
   const jsTool = tool({
-    sdk: opt.sdk,
-    runType: opt.runType,
-    proxyTag: opt.proxyTag,
+    ...opt,
   })
   const queue = new util.TaskQueue()
   const { proxy, proxyTag, userData } = proxyHook({
@@ -82,6 +80,7 @@ const hookRun = (opt) => {
     },
   })
   return {
+    jsTool,
     proxy,
   }
 }

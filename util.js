@@ -1,4 +1,20 @@
 /**
+ * 合并对象，undefined 值不覆盖
+ * @param  {...any} objects 
+ * @returns 
+ */
+function mergeWithoutUndefined(...objects) {
+  return objects.reduce((acc, obj) => {
+    Object.keys(obj).forEach((key) => {
+      if (obj[key] !== undefined) {
+        acc[key] = obj[key];
+      }
+    });
+    return acc;
+  }, {});
+}
+
+/**
  * 生成 guid
  * @param {string} format 格式
  */
@@ -72,6 +88,7 @@ function replaceIdsWithKeys(str) {
 }
 
 module.exports = {
+  mergeWithoutUndefined,
   replaceIdsWithKeys,
   TaskQueue,
   sleep,

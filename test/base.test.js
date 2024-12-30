@@ -25,14 +25,64 @@ describe(`sdk`, async () => {
     expect(res).toStrictEqual(`ReferenceError: undeclaredVariablesA is not defined`)
   })
 }, 10 * 1e3)
+
+describe(`配置项`, async () => {
+  const sdk = await require(`../sdkPromise.js`)
+  test(`globalNamespace`, async () => {
+    const { proxy } = hookToCode({sdk, globalNamespace: `globalThis`})
+    const OS = await proxy.process.env.OS
+    const __filename = await proxy.__filename
+    console.log({OS})
+    await proxy.clear()
+    expect(OS).toBeTypeOf(`string`)
+    && expect(__filename).toBeTypeOf(`object`)
+  })
+  test(`variablePrefix`, async () => {
+    const id = util.guid()
+    const { proxy } = hookToCode({sdk, variablePrefix: id})
+    // 注意: 故意制造一个错误抛出变量名
+    const OS = await proxy.process.env.OS().catch(String)
+    await proxy.clear().catch(String)
+    expect(OS).includes(id)
+  })
+  test(`variablePrefix - 带点号`, async () => {
+    const id = util.guid()
+    const { proxy } = hookToCode({sdk, variablePrefix: `globalThis.${id}`})
+    // 注意: 故意制造一个错误抛出变量名
+    const OS = await proxy.process.env.OS().catch(String)
+    await proxy.clear().catch(String)
+    expect(OS).includes(id)
+  })
+  test(`lib`, async () => {
+    const { proxy, jsTool } = hookToCode({lib: [
+      `process.env.OS`,
+    ]})
+    const OS = await proxy.process.env.OS
+    const code = jsTool.codeStrTool.getCodeList().join(`\n`)
+    console.log({OS, code})
+    await proxy.clear()
+    expect(code).includes(`process.env.OS`)
+  })
+  test(`clearKey`, async () => {
+    const id = util.guid()
+    const { proxy } = hookToCode({
+      sdk,
+      clearKey: id,
+    })
+    const OS = await proxy.process.env.OS
+    console.log({OS})
+    await proxy[id]()
+    expect(OS).toBeTypeOf(`string`)
+  })
+}, 10 * 1e3)
 describe(`mainRuner`, async () => {
   const sdk = await require(`../sdkPromise.js`)
   test(`proxy.process.env.OS -- 即时取值`, async () => {
     const { proxy } = hookToCode({sdk})
-    const os = await proxy.process.env.OS
-    console.log(os)
+    const OS = await proxy.process.env.OS
+    console.log(OS)
     await proxy.clear()
-    expect(os).toBeTypeOf(`string`)
+    expect(OS).toBeTypeOf(`string`)
   })
   test(`msg/process.msg2 全局空间设置和获取值`, async () => {
     const { proxy, userData } = hookToCode({sdk})

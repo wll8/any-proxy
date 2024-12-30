@@ -22,13 +22,25 @@ function getPath(id, list) {
  * 工具函数
  */
 function tool(config) {
-  config = Object.assign({
+  config = util.mergeWithoutUndefined({
     proxyTag: ``,
+    /**
+     * 自动生成的中间变量名前缀
+     */
     variablePrefix: `v`,
+    /**
+     * 全局命名空间
+     * 比如设置 globalNamespace 为 window 时
+     * proxy.id = 1 将转换为 window.id = 1
+     */
     globalNamespace: ``,
     variableKeyword: ``,
     lib: [],
-    sdk: undefined,
+    sdk: {
+      async run(...args) {
+        return args
+      }
+    },
     runType: `mainRuner`,
   }, config)
 
@@ -63,10 +75,16 @@ function tool(config) {
     dataList.push(item)
     const generateVarName = (id) => `${config.variablePrefix}${id}`;
     const { type, id, parent, key, thisArgId, args, value } = item;
+
+    const varName = generateVarName(id);
+    idToVarName[id] = varName;
+    const prefix = parent 
+      ? `${idToVarName[parent]}.` 
+      : config.globalNamespace ?
+        `${config.globalNamespace}.` 
+        : ``;
     const typeObj = {
       'get'() {
-        const varName = generateVarName(id);
-        idToVarName[id] = varName;
         const fullPath = util.replaceIdsWithKeys(getPath(id, dataList).map(item => item.key).filter(item => {
           return typeof(item) !== `undefined`
         }).join(`.`))
@@ -74,13 +92,10 @@ function tool(config) {
         if (config.lib.includes(idToFullPath[id])) {
           codeList.push(`${config.variableKeyword} ${varName} = ${idToFullPath[id]};`.trim())
         } else {
-          const objVar = parent ? idToVarName[parent] : config.globalNamespace;
-          const prefix = parent ? `${objVar}.` : '';
           codeList.push(`${config.variableKeyword} ${varName} = ${util.replaceIdsWithKeys(`${prefix}${key}`)};`.trim())
         }
       },
       'apply'() {
-        const funcVar = idToVarName[parent];
         const thisArg = thisArgId ? idToVarName[thisArgId] : 'null';
         // 递归转换代理标记为变量名
         function replaceProxyTag(args) {
@@ -94,15 +109,12 @@ function tool(config) {
         
         
         const evalArgs = replaceProxyTag(args);
-        const returnVar = generateVarName(id);
-        idToVarName[id] = returnVar;
         codeList.push([
-          `${config.variableKeyword} ${returnVar} = ${funcVar}.apply(${thisArg}, [${evalArgs}])`.trim(),
+          `${config.variableKeyword} ${varName} = ${prefix}apply(${thisArg}, [${evalArgs}]);`.trim(),
         ].join(`\n`))
       },
       'set'() {
-        const objVar = parent ? idToVarName[parent] : config.globalNamespace;
-        const setKey = util.replaceIdsWithKeys(objVar ? `${objVar}.${key}` : key);
+        const setKey = util.replaceIdsWithKeys(`${prefix}${key}`);
         const valueArgs = String(value).startsWith(config.proxyTag) ? idToVarName[value.replace(config.proxyTag, '')] : JSON.stringify(value);
         codeList.push(`${setKey} = ${valueArgs};`)
       },
@@ -125,7 +137,7 @@ function tool(config) {
       const line = codeList.at(-1)
       const varName = this.getVarName(line)
       const parentVarName = `${config.variablePrefix}${parent}`
-      const snedLine = parentVarName === varName ? `return ${varName}` : `return ${parentVarName}`
+      const snedLine = parentVarName === varName ? `return ${varName};` : `return ${parentVarName};`
       return snedLine
     }
     /**
