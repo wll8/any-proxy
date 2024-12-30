@@ -86,10 +86,12 @@ describe(`mainRuner`, async () => {
   })
   test(`msg/process.msg2 全局空间设置和获取值`, async () => {
     const { proxy, userData } = hookToCode({sdk})
-    proxy.msg = `msg`
-    proxy.process.msg2 = `msg2`
-    const msg = await proxy.msg
-    const msg2 = await proxy.process.msg2
+    const id1 = util.guid()
+    const id2 = util.guid()
+    proxy[id1] = `msg`
+    proxy.process[id2] = `msg2`
+    const msg = await proxy[id1]
+    const msg2 = await proxy.process[id2]
     await proxy.clear()
     const res = {msg, msg2}
     console.log(res)
@@ -97,17 +99,19 @@ describe(`mainRuner`, async () => {
   })
   test(`proxy.process.myFile = proxy.__filename -- 挂载 __filename 到 process.myFile`, async () => {
     const { proxy, userData } = hookToCode({sdk})
-    proxy.process.myFile = proxy.__filename
-    const name = await proxy.process.myFile
+    const id = util.guid()
+    proxy.process[id] = proxy.__filename
+    const name = await proxy.process[id]
     await proxy.clear()
     console.log({name})
     expect(name).toBeTypeOf(`string`)
   })
   test(`fs.statSync(proxy.process.myFile) -- 函数的参数使用挂载的变量`, async () => {
     const { proxy, userData } = hookToCode({sdk})
-    proxy.process.myFile = proxy.__filename
+    const id = util.guid()
+    proxy.process[id] = proxy.__filename
     const fs = proxy.require(`fs`)
-    const {size} = await fs.statSync(proxy.process.myFile, `utf8`)
+    const {size} = await fs.statSync(proxy.process[id], `utf8`)
     await proxy.clear()
     console.log({size})
     expect(size).toBeTypeOf(`number`)
@@ -125,13 +129,16 @@ describe(`mainRuner`, async () => {
   })
   test(`赋值、取值、函数调用`, async () => {
     const { proxy, userData, queue } = hookToCode({sdk})
-    proxy.msg = `msg`
-    proxy.process.msg2 = `msg2`
-    proxy.process.myFile = proxy.__filename
-    const msg = await proxy.msg
-    const msg2 = await proxy.process.msg2
+    const id = util.guid()
+    const id2 = util.guid()
+    const id3 = util.guid()
+    proxy[id] = `msg`
+    proxy.process[id2] = `msg2`
+    proxy.process[id3] = proxy.__filename
+    const msg = await proxy[id]
+    const msg2 = await proxy.process[id2]
     const fs = proxy.require(`fs`)
-    const {size} = await fs.statSync(proxy.process.myFile, `utf8`)
+    const {size} = await fs.statSync(proxy.process[id3], `utf8`)
     const pid = await proxy.process.pid
     const res = {msg, msg2, sizeType: typeof(size), pidType: typeof(pid)}
     console.log(res)
@@ -140,61 +147,71 @@ describe(`mainRuner`, async () => {
   })
   test(`proxy.Math.max(proxy.a, proxy.b) -- 引用多个远程参数`, async () => {
     const { proxy, userData } = hookToCode({sdk})
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Math.max(proxy.a, proxy.b)
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Math.max(proxy[a], proxy[b])
     console.log(res)
     await proxy.clear()
     expect(res).toStrictEqual(2)
   })
   test(`proxy.Array.from([proxy.a, proxy.b]) -- 在数组中引用多个远程参数`, async () => {
     const { proxy, userData } = hookToCode({sdk})
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Array.from([proxy.a, proxy.b])
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Array.from([proxy[a], proxy[b]])
     console.log(res)
     await proxy.clear()
     expect(res).toStrictEqual([1, 2])
   })
   test(`proxy.Array.from([proxy.a.a, proxy.b.b]) -- 在数组中引用多个远程参数 -- 对象中取值`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = {a: 1}
-    proxy.b = {b: 2}
-    const res = await proxy.Array.from([proxy.a.a, proxy.b.b])
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = {a: 1}
+    proxy[b] = {b: 2}
+    const res = await proxy.Array.from([proxy[a].a, proxy[b].b])
     console.log(res)
     expect(res).toStrictEqual([1, 2])
   })
   test(`使用之前设置的变量`, async () => {
     const { proxy, queue } = hookToCode({sdk})
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Array.from([proxy.a, proxy.b])
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Array.from([proxy[a], proxy[b]])
     console.log(res)
     await proxy.clear()
     const { proxy: proxy2 } = hookToCode({sdk})
     // 还可以再拿到的 a 和 b
-    const res2 = await proxy2.Array.from([proxy2.a, proxy2.b])
+    const res2 = await proxy2.Array.from([proxy2[a], proxy2[b]])
     console.log(res2)
     await proxy.clear()
     expect(res2).toStrictEqual([1, 2])
   })
   test(`readme 中的 demo`, async () => {
     const { proxy } = hookToCode({sdk})
-    
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Math.max(proxy.a, proxy.b)
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Math.max(proxy[a], proxy[b])
     await proxy.clear()
     expect(res).toStrictEqual(2)
   })
   test(`解构`, async () => {
     const { proxy } = hookToCode({sdk})
     const { Math } = proxy
-    let {globalThis: {a, b}} = proxy
+    let {globalThis: {[util.guid()]: a, [util.guid()]: b}} = proxy
     a = 1
     b = 2
-    proxy.c = 3
-    const res = await Math.max(a, b, proxy.c)
+    const c = util.guid()
+    proxy[c] = 3
+    const res = await Math.max(a, b, proxy[c])
     await proxy.clear()
     expect(res).toStrictEqual(3)
   })
@@ -534,10 +551,12 @@ describe(`createRuner`, async () => {
   })
   test(`msg/process.msg2 全局空间设置和获取值`, async () => {
     const { proxy, userData } = hookToCode({sdk, runType: `createRuner`})
-    proxy.msg = `msg`
-    proxy.process.msg2 = `msg2`
-    const msg = await proxy.msg
-    const msg2 = await proxy.process.msg2
+    const id1 = util.guid()
+    const id2 = util.guid()
+    proxy[id1] = `msg`
+    proxy.process[id2] = `msg2`
+    const msg = await proxy[id1]
+    const msg2 = await proxy.process[id2]
     await proxy.clear()
     const res = {msg, msg2}
     console.log(res)
@@ -545,17 +564,19 @@ describe(`createRuner`, async () => {
   })
   test(`proxy.process.myFile = proxy.__filename -- 挂载 __filename 到 process.myFile`, async () => {
     const { proxy, userData } = hookToCode({sdk, runType: `createRuner`})
-    proxy.process.myFile = proxy.__filename
-    const name = await proxy.process.myFile
+    const id = util.guid()
+    proxy.process[id] = proxy.__filename
+    const name = await proxy.process[id]
     await proxy.clear()
     console.log({name})
     expect(name).toBeTypeOf(`string`)
   })
   test(`fs.statSync(proxy.process.myFile) -- 函数的参数使用挂载的变量`, async () => {
     const { proxy, userData } = hookToCode({sdk, runType: `createRuner`})
-    proxy.process.myFile = proxy.__filename
+    const id = util.guid()
+    proxy.process[id] = proxy.__filename
     const fs = proxy.require(`fs`)
-    const {size} = await fs.statSync(proxy.process.myFile, `utf8`)
+    const {size} = await fs.statSync(proxy.process[id], `utf8`)
     await proxy.clear()
     console.log({size})
     expect(size).toBeTypeOf(`number`)
@@ -573,13 +594,16 @@ describe(`createRuner`, async () => {
   })
   test(`赋值、取值、函数调用`, async () => {
     const { proxy, userData, queue } = hookToCode({sdk, runType: `createRuner`})
-    proxy.msg = `msg`
-    proxy.process.msg2 = `msg2`
-    proxy.process.myFile = proxy.__filename
-    const msg = await proxy.msg
-    const msg2 = await proxy.process.msg2
+    const id = util.guid()
+    const id2 = util.guid()
+    const id3 = util.guid()
+    proxy[id] = `msg`
+    proxy.process[id2] = `msg2`
+    proxy.process[id3] = proxy.__filename
+    const msg = await proxy[id]
+    const msg2 = await proxy.process[id2]
     const fs = proxy.require(`fs`)
-    const {size} = await fs.statSync(proxy.process.myFile, `utf8`)
+    const {size} = await fs.statSync(proxy.process[id3], `utf8`)
     const pid = await proxy.process.pid
     const res = {msg, msg2, sizeType: typeof(size), pidType: typeof(pid)}
     console.log(res)
@@ -588,61 +612,71 @@ describe(`createRuner`, async () => {
   })
   test(`proxy.Math.max(proxy.a, proxy.b) -- 引用多个远程参数`, async () => {
     const { proxy, userData } = hookToCode({sdk, runType: `createRuner`})
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Math.max(proxy.a, proxy.b)
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Math.max(proxy[a], proxy[b])
     console.log(res)
     await proxy.clear()
     expect(res).toStrictEqual(2)
   })
   test(`proxy.Array.from([proxy.a, proxy.b]) -- 在数组中引用多个远程参数`, async () => {
     const { proxy, userData } = hookToCode({sdk, runType: `createRuner`})
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Array.from([proxy.a, proxy.b])
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Array.from([proxy[a], proxy[b]])
     console.log(res)
     await proxy.clear()
     expect(res).toStrictEqual([1, 2])
   })
   test(`proxy.Array.from([proxy.a.a, proxy.b.b]) -- 在数组中引用多个远程参数 -- 对象中取值`, async () => {
     const { proxy, queue } = hookToCode({sdk, runType: `createRuner`})
-    proxy.a = {a: 1}
-    proxy.b = {b: 2}
-    const res = await proxy.Array.from([proxy.a.a, proxy.b.b])
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = {a: 1}
+    proxy[b] = {b: 2}
+    const res = await proxy.Array.from([proxy[a].a, proxy[b].b])
     console.log(res)
     expect(res).toStrictEqual([1, 2])
   })
   test(`使用之前设置的变量`, async () => {
     const { proxy, queue } = hookToCode({sdk, runType: `createRuner`})
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Array.from([proxy.a, proxy.b])
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Array.from([proxy[a], proxy[b]])
     console.log(res)
     await proxy.clear()
     const { proxy: proxy2 } = hookToCode({sdk, runType: `createRuner`})
     // 还可以再拿到的 a 和 b
-    const res2 = await proxy2.Array.from([proxy2.a, proxy2.b])
-    console.log(res2)
+    const res2 = await proxy2.Array.from([proxy2[a], proxy2[b]])
+    console.log({res2})
     await proxy.clear()
     expect(res2).toStrictEqual([1, 2])
   })
   test(`readme 中的 demo`, async () => {
     const { proxy } = hookToCode({sdk, runType: `createRuner`})
-    
-    proxy.a = 1
-    proxy.b = 2
-    const res = await proxy.Math.max(proxy.a, proxy.b)
+    const a = util.guid()
+    const b = util.guid()
+    proxy[a] = 1
+    proxy[b] = 2
+    const res = await proxy.Math.max(proxy[a], proxy[b])
     await proxy.clear()
     expect(res).toStrictEqual(2)
   })
   test(`解构`, async () => {
     const { proxy } = hookToCode({sdk, runType: `createRuner`})
     const { Math } = proxy
-    let {globalThis: {a, b}} = proxy
+    let {globalThis: {[util.guid()]: a, [util.guid()]: b}} = proxy
     a = 1
     b = 2
-    proxy.c = 3
-    const res = await Math.max(a, b, proxy.c)
+    const c = util.guid()
+    proxy[c] = 3
+    const res = await Math.max(a, b, proxy[c])
     await proxy.clear()
     expect(res).toStrictEqual(3)
   })
