@@ -108,17 +108,7 @@ async function run(ws, obj) {
        * 在 vm 中运行
        * @returns 
        */
-      createRuner: (vm) => {
-        const res = vm.run(`
-          eval(${JSON.stringify(fnCode)})
-        `)
-        return res
-      },
-      /**
-       * 在临时 vm 中运行
-       * @returns 
-       */
-      createRunerOnce: (vm) => {
+      vm: (vm) => {
         const res = vm.run(`
           eval(${JSON.stringify(fnCode)})
         `)
@@ -129,9 +119,9 @@ async function run(ws, obj) {
     if([`mainRuner`, `mainRunerOnce`].includes(cfg.runType)) {
       resTemp = tab.main()
     } else if([`createRuner`].includes(cfg.runType)) {
-      resTemp = tab.createRuner(vmRuner.getVm())
+      resTemp = tab.vm(vmRuner.getVm())
     } else if([`createRunerOnce`].includes(cfg.runType)) {
-      resTemp = tab.createRuner(getVm())
+      resTemp = tab.vm(getVm())
     }
     try {
       resObj.res = [
