@@ -1,4 +1,33 @@
 /**
+ * 判断数据是否为 type, 或返回 type
+ * @param {*} data 
+ * @param {*} type 
+ * @returns 
+ */
+function isType(data, type = undefined) {
+  const dataType = Object.prototype.toString.call(data).match(/\s(.+)]/)[1].toLowerCase()
+  return type ? (dataType === type.toLowerCase()) : dataType
+}
+
+/**
+ * 删除左边空白符
+ * @param {*} str 
+ * @returns 
+ */
+function removeLeft(str) {
+  const lines = str.split('\n')
+  // 获取应该删除的空白符数量
+  const minSpaceNum = lines.filter(item => item.trim())
+    .map(item => item.match(/(^\s+)?/)[0].length)
+    .sort((a, b) => a - b)[0]
+  // 删除空白符
+  const newStr = lines
+    .map(item => item.slice(minSpaceNum))
+    .join('\n')
+  return newStr
+}
+
+/**
  * 合并对象，undefined 值不覆盖
  * @param  {...any} objects 
  * @returns 
@@ -88,6 +117,8 @@ function replaceIdsWithKeys(str) {
 }
 
 module.exports = {
+  isType,
+  removeLeft,
   mergeWithoutUndefined,
   replaceIdsWithKeys,
   TaskQueue,

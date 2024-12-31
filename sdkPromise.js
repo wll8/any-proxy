@@ -1,7 +1,7 @@
 const WebSocket = require('websocket').w3cwebsocket;
 
-const wsLink = `ws://127.0.0.1:20005/rpc`;
-
+globalThis.wsLink = `ws://127.0.0.1:20005/rpc`;
+globalThis.id = 0;
 globalThis.sdkPromise = new Promise(async (resolve, reject) => {
   const sdk = {
     ws: undefined,
@@ -9,7 +9,7 @@ globalThis.sdkPromise = new Promise(async (resolve, reject) => {
     runCb: {},
   };
   const ready = await new Promise((resolve, reject) => {
-    const ws = new WebSocket(wsLink);
+    const ws = new WebSocket(globalThis.wsLink);
     ws.onopen = (evt) => {
       resolve({ ws });
     };
@@ -24,8 +24,8 @@ globalThis.sdkPromise = new Promise(async (resolve, reject) => {
         const pFn = sdk.runCb[data.id]; // promise 的回调函数
         if (pFn) {
           const [resCb, errCb] = pFn;
-          const [err, ...res] = data.result;
-          err ? errCb(err) : resCb(res);
+          const [resObj] = data.result;
+          resObj.err ? errCb(resObj.err) : resCb(resObj.res);
           delete pFn;
         }
       }
@@ -34,12 +34,17 @@ globalThis.sdkPromise = new Promise(async (resolve, reject) => {
   }).catch((err) => reject(err));
   const { ws } = ready;
   sdk.ws = ws;
-  sdk.run = async (params) => {
+  /**
+   * 调用远程 run 方法, params 仅支持数组
+   * @param {*} params 
+   * @returns 
+   */
+  sdk.run = async (params = []) => {
     const id = globalThis.id = (globalThis.id || 0) + 1
     const data = {
       jsonrpc: `2.0`,
       method: `run`,
-      params: typeof (params) === `string` ? [params] : params,
+      params,
       id,
     };
     return new Promise((resolve, reject) => {

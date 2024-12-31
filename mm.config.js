@@ -1,4 +1,5 @@
 const {VM} = require('vm2');
+const util = require('./util.js');
 const getVm = () => {
   const vm = new VM({
     require: {
@@ -47,7 +48,7 @@ const vmRuner = (function() {
  * @see: https://www.hongqiye.com/doc/mockm/config/option.html
  * @type {import('mockm/@types/config').Config}
  */
-module.exports = util => {
+module.exports = mockmUtil => {
   return {
     port: 20005,
     testPort: 20006,
@@ -73,13 +74,27 @@ module.exports = util => {
  */
 async function run(ws, obj) {
   // todo fnArgs 中应支持使用参数名和参数值
-  const [fnStr, fnArgs = [], cfg = {
-    runType: `mainRuner`
-  }] = obj.params
-  console.log(`fnStr`, fnStr)
-
-  let res = undefined
-  let err = undefined
+  let [cfg] = obj.params
+  cfg = util.mergeWithoutUndefined({
+    // 运行类型
+    runType: `mainRuner`,
+    // 函数内代码
+    code: ``,
+    // 函数的参数
+    args: [],
+    // 函数的参数名
+    argsName: `args`,
+  }, cfg)
+  console.log(cfg.code)
+  const fnCode = util.removeLeft(`
+    ;((...${cfg.argsName}) => {
+      ${cfg.code}
+    })(${cfg.args.map(item => JSON.stringify(item)).join(`, `)});`)
+  const resObj = {
+    err: undefined,
+    res: [],
+    resType: [],
+  }
   try {
     const tab = {
       /**
@@ -87,17 +102,15 @@ async function run(ws, obj) {
        * @returns 
        */
       main: () => {
-        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
-        return eval(js)
+        return eval(fnCode)
       },
       /**
        * 在 vm 中运行
        * @returns 
        */
       createRuner: (vm) => {
-        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         const res = vm.run(`
-          eval(${JSON.stringify(js)})
+          eval(${JSON.stringify(fnCode)})
         `)
         return res
       },
@@ -106,29 +119,36 @@ async function run(ws, obj) {
        * @returns 
        */
       createRunerOnce: (vm) => {
-        const js = `;((...args) => {${fnStr}})(${fnArgs.map(item => JSON.stringify(item)).join(`, `)});`
         const res = vm.run(`
-          eval(${JSON.stringify(js)})
+          eval(${JSON.stringify(fnCode)})
         `)
         return res
       },
     }
-    let resObj = undefined
+    let resTemp = undefined
     if([`mainRuner`, `mainRunerOnce`].includes(cfg.runType)) {
-      resObj = tab.main()
+      resTemp = tab.main()
     } else if([`createRuner`].includes(cfg.runType)) {
-      resObj = tab.createRuner(vmRuner.getVm())
+      resTemp = tab.createRuner(vmRuner.getVm())
     } else if([`createRunerOnce`].includes(cfg.runType)) {
-      resObj = tab.createRuner(getVm())
+      resTemp = tab.createRuner(getVm())
     }
-    res = JSON.parse(JSON.stringify(typeof(resObj) === `undefined` ? null : resObj))
+    try {
+      resObj.res = [
+        JSON.parse(JSON.stringify(typeof(resTemp) === `undefined` ? null : resTemp))
+      ]
+    } catch (error) {
+      resObj.resType = [
+        util.isType(resTemp)
+      ]
+    }
   } catch (error) {
-    err = String(error)
+    resObj.err = String(error)
   }
   const str = JSON.stringify({
     id: obj.id,
     jsonrpc: `2.0`,
-    result: [err, res]
+    result: [resObj]
   })
   ws.send(str)
 }

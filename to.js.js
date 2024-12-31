@@ -204,11 +204,12 @@ function tool(config) {
             return reject(this.getError())
           }
           // 由于 js 只有一个返回值, 所以只取一个
-          config.sdk.run([code, [], {
+          config.sdk.run([{
+            code,
             runType: config.runType,
           }]).then(([res]) => {
             resolve(res)
-          }).catch(err => {
+          }).catch((err) => {
             this.errList.push(err)
             reject(err)
           })

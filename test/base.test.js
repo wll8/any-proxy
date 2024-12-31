@@ -489,18 +489,39 @@ describe(`sdk`, async () => {
   const sdk = await require(`../sdkPromise.js`)
   test(`发送多个参数并接收返回值`, async () => {
     const sendArgs = [[1, 2, 3], 4, 5]
+    const code = util.removeLeft(`
+      return args  
+    `)
     const [resArgs] = await sdk.run([
-      `
-        return args
-      `, sendArgs
+      {
+        code,
+        args: sendArgs,
+      }
+    ])
+    expect(sendArgs).toStrictEqual(resArgs)
+  })
+  test(`指定函数参数`, async () => {
+    const sendArgs = [[1, 2, 3], 4, 5]
+    const code = util.removeLeft(`
+      return sendArgs  
+    `)
+    const [resArgs] = await sdk.run([
+      {
+        code,
+        args: sendArgs,
+        argsName: `sendArgs`,
+      }
     ])
     expect(sendArgs).toStrictEqual(resArgs)
   })
   test(`获取错误信息 -- 使用未声明的变量`, async () => {
+    const code = util.removeLeft(`
+      undeclaredVariablesA
+    `)
     const res = await sdk.run([
-      `
-        undeclaredVariablesA
-      `
+      {
+        code,
+      }
     ]).catch(String)
     console.log(res)
     expect(res).toStrictEqual(`ReferenceError: undeclaredVariablesA is not defined`)
