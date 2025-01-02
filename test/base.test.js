@@ -139,7 +139,7 @@ async function runnerTest(opt = {}) {
     await proxy.clear()
     expect(res).toStrictEqual(2)
   })
-  test(`解构`, async () => {
+  test(`解构对象`, async () => {
     const { proxy } = hookToCode(opt)
     const { Math } = proxy
     let {globalThis: {[util.guid()]: a, [util.guid()]: b}} = proxy
@@ -150,6 +150,31 @@ async function runnerTest(opt = {}) {
     const res = await Math.max(a, b, proxy[c])
     await proxy.clear()
     expect(res).toStrictEqual(3)
+  })
+  test(`不解构数组`, async () => {
+    const id = util.guid()
+    const { proxy } = hookToCode({sdk})
+    proxy[id] = [{a: 1}, {b: 2}]
+    const arg0 = proxy[id][0]
+    const arg1 = proxy[id][1]
+    const res = {
+      arg0: await arg0,
+      arg1: await arg1,
+    }
+    console.log(res)
+    await proxy.clear()
+  })
+  test.todo(`暂不支持解构数组`, async () => {
+    const id = util.guid()
+    const { proxy } = hookToCode({sdk})
+    proxy[id] = [{a: 1}, {b: 2}]
+    const [arg0, arg1] = proxy[id]
+    const res = {
+      arg0: await arg0,
+      arg1: await arg1,
+    }
+    console.log(res)
+    await proxy.clear()
   })
   test(`获取错误信息 -- 读取一个未声明的变量应抛出错误 -- 在 Math.max 和 clear 中获取错误`, async () => {
     const { proxy } = hookToCode(opt)
