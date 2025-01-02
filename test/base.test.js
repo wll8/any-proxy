@@ -9,7 +9,7 @@ const util = require(`../util.js`)
  * @param {*} opt 
  */
 async function runnerTest(opt = {}) {
-  const sdk = await require(`../sdkPromise.js`)
+  const sdk = await require(`../sdkPromise.js`).getSdk()
   opt = util.mergeWithoutUndefined({
     sdk,
   }, opt)
@@ -451,7 +451,7 @@ async function runnerTest(opt = {}) {
  * @param {*} opt 
  */
 async function onceTest(opt = {}) {
-  const sdk = await require(`../sdkPromise.js`)
+  const sdk = await require(`../sdkPromise.js`).getSdk()
   opt = util.mergeWithoutUndefined({
     sdk,
   }, opt)
@@ -511,7 +511,21 @@ async function onceTest(opt = {}) {
 }
 
 describe(`sdk`, async () => {
-  const sdk = await require(`../sdkPromise.js`)
+  const sdk = await require(`../sdkPromise.js`).getSdk()
+  test(`新的 ws 客户端`, async () => {
+    const sdk2 = await require(`../sdkPromise.js`).getSdk(`sdk2`)
+    const sendArgs = [[1, 2, 3], 4, 5]
+    const code = util.removeLeft(`
+      return args  
+    `)
+    const [resArgs] = await sdk2.run([
+      {
+        code,
+        args: sendArgs,
+      }
+    ])
+    expect(sendArgs).toStrictEqual(resArgs)
+  })
   test(`发送多个参数并接收返回值`, async () => {
     const sendArgs = [[1, 2, 3], 4, 5]
     const code = util.removeLeft(`
@@ -554,7 +568,7 @@ describe(`sdk`, async () => {
 }, 10 * 1e3)
 
 describe(`配置项`, async () => {
-  const sdk = await require(`../sdkPromise.js`)
+  const sdk = await require(`../sdkPromise.js`).getSdk()
   test(`globalNamespace`, async () => {
     const { proxy } = hookToCode({sdk, globalNamespace: `globalThis`})
     const OS = await proxy.process.env.OS
