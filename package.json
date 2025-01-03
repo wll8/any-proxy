@@ -3,13 +3,18 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "client": "nodemon --watch client.js client.js",
+    "server": "nodemon --watch server.js server.js",
     "test": "vitest --reporter=basic"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "deasync": "^0.1.30",
+    "mitt": "^3.0.1",
     "proxy-deep": "^3.1.1",
+    "rpc-websockets": "^9.0.4",
     "vitest": "^2.1.5",
     "vm2": "^3.9.19",
     "websocket": "^1.0.35"
