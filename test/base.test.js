@@ -526,7 +526,7 @@ describe(`sdk`, async () => {
     ])
     expect(sendArgs).toStrictEqual(resArgs)
   })
-  test.only(`发送多个参数并接收返回值`, async () => {
+  test(`发送多个参数并接收返回值`, async () => {
     const sendArgs = [[1, 2, 3], 4, 5]
     const code = util.removeLeft(`
       return args  

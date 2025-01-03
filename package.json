@@ -3,8 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "client": "nodemon --watch client.js client.js",
-    "server": "nodemon --watch server.js server.js",
     "test": "vitest --reporter=basic"
   },
   "keywords": [],

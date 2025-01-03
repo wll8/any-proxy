@@ -1,62 +1,84 @@
-const WebSocket = require('websocket').w3cwebsocket;
+require(`util`).inspect.defaultOptions.depth = 4 // console.log 展开对象
+
+const hookToCode = require('./hookToCode.js')
+const util = require('./util.js')
+const WebSocket = require('rpc-websockets').Client
+const mitt = require('mitt')
+const emitter = mitt()
 
 function getSdk(key = `rpc`) {
   globalThis[key] = globalThis[key] || {}
   const rpc = globalThis[key]
-  rpc.wsLink = `ws://127.0.0.1:20005/rpc`;
-  rpc.id = 0;
+  rpc.wsLink = `ws://127.0.0.1:30005`;
   rpc.sdkPromise = rpc.sdkPromise || new Promise(async (resolve, reject) => {
-    const sdk = {
-      ws: undefined,
-      run: undefined,
-      runCb: {},
-    };
-    const ready = await new Promise((resolve, reject) => {
-      const ws = new WebSocket(rpc.wsLink);
-      ws.onopen = (evt) => {
-        resolve({ ws });
-      };
-      ws.onmessage = (evt) => {
-        const data = JSON.parse(evt.data || `{}`);
-        if (!data.id) {
-          // 例如整个 rpc 服务报错时没有 id
-          Object.values(sdk.runCb).forEach(([resCb, errCb]) => {
-            errCb(data.error);
-          });
-        } else {
-          const pFn = sdk.runCb[data.id]; // promise 的回调函数
-          if (pFn) {
-            const [resCb, errCb] = pFn;
-            const [resObj] = data.result;
-            resObj.err ? errCb(resObj.err) : resCb(resObj.res);
-            delete pFn;
+    const ws = new WebSocket(rpc.wsLink)
+    const sendRun = (opt) => {
+      opt = util.mergeWithoutUndefined({
+        id: ``,
+        code: ``,
+        args: [],
+        argsName: `args`,
+        runType: `mainRuner`,
+        sendOk: (...args) => console.log(`sendOk`, args),
+        sendErr: (...args) => console.log(`sendErr`, args),
+        runOk: (...args) => console.log(`runOk`, args),
+        runErr: (...args) => console.log(`runErr`, args),
+        cbArg: (...args) => console.log(`cbArg`, args),
+      }, opt)
+      ws.call('run', opt).then((codeInfo) => {
+        opt.sendOk(codeInfo)
+        emitter.on(opt.id, (idInfo) => {
+          if(idInfo.data.type === `runErr`) {
+            opt.runErr(idInfo)
+            emitter.off(opt.id)
+          } else if(idInfo.data.type === `runOk`) {
+            opt.runOk(idInfo)
+            emitter.off(opt.id)
+          } else if(idInfo.data.type === `cbArg`) {
+            opt.cbArg(idInfo)
           }
+        })
+      }).catch(err => {
+        opt.sendErr(err)
+      })
+    }
+    ws.on('open', async () => {
+      ws.subscribe(`codeMsg`)
+      ws.on(`codeMsg`, (idInfo) => {
+        emitter.emit(idInfo.id, idInfo)
+      })
+      const sdk = {
+        async run([opt], ctx) {
+          return new Promise((resolve, reject) => {
+            const id = util.guid()
+            sendRun({
+              id,
+              ...opt,
+              sendOk(){},
+              runErr(idInfo){
+                reject(idInfo.data.res)
+              },
+              runOk(idInfo){
+                resolve(idInfo.data.res)
+              },
+              cbArg: async (idInfo) => {
+                const [fnId] = idInfo.data.res
+                const fn = ctx.idToFn(fnId)
+                const { proxy } = hookToCode({sdk, variablePrefix: `cb`})
+                const args = proxy[fnId].args
+                const size = await proxy[fnId].size
+                const argsProxy = Array.from({length: size}).map((item, index) => args[index])
+                const fnRes = await fn(...argsProxy)
+                await proxy[fnId].done(fnRes)
+              },
+            })
+          })
         }
-      };
-      ws.onerror = reject;
-    }).catch((err) => reject(err));
-    const { ws } = ready;
-    sdk.ws = ws;
-    /**
-     * 调用远程 run 方法, params 仅支持数组
-     * @param {*} params 
-     * @param {*} ctx 上下文信息
-     * @returns 
-     */
-    sdk.run = async (params = [], ctx) => {
-      const id = rpc.id = (rpc.id || 0) + 1
-      const data = {
-        jsonrpc: `2.0`,
-        method: `run`,
-        params,
-        id,
-      };
-      return new Promise((resolve, reject) => {
-        sdk.runCb[id] = [resolve, reject];
-        ws.send(JSON.stringify(data));
-      });
-    };
-    resolve(sdk);
+    
+      }
+      resolve(sdk)
+    })
+    ws.on(`error`, reject)
   });
   return rpc.sdkPromise
 }

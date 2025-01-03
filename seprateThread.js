@@ -1,3 +1,4 @@
+const deasync = require(`deasync`);
 const { parentPort } = require(`worker_threads`);
 const {VM} = require('vm2');
 const util = require('./util.js');
@@ -54,14 +55,7 @@ const vmRuner = (function() {
 
 
 
-/**
- * 动态运行 js
- * @param {*} wsId 
- * @param {*} obj 
- */
-async function run(wsId, obj) {
-  // todo fnArgs 中应支持使用参数名和参数值
-  let [cfg] = obj.params
+async function run(cfg) {
   cfg = util.mergeWithoutUndefined({
     // 运行类型
     runType: `mainRuner`,
@@ -75,12 +69,9 @@ async function run(wsId, obj) {
   console.log(cfg.code)
   const fnCode = util.removeLeft(`
     ;((...${cfg.argsName}) => {
-      ${cfg.code}
+      ${transformCode(cfg.code)}
     })(${cfg.args.map(item => JSON.stringify(item)).join(`, `)});`)
-  const resObj = {
-    err: undefined,
-    res: [],
-  }
+  let res = []
   try {
     const tab = {
       /**
@@ -110,26 +101,81 @@ async function run(wsId, obj) {
       resTemp = tab.vm(getVm())
     }
     try {
-      resObj.res = [
+      res = [
         JSON.parse(JSON.stringify(typeof(resTemp) === `undefined` ? null : resTemp))
       ]
     } catch (error) {
       console.log(error)
     }
+    parentPort.postMessage({
+      id: cfg.id,
+      data: {
+        type: `runOk`,
+        res,
+      },
+    });
   } catch (error) {
-    resObj.err = String(error)
+    parentPort.postMessage({
+      id: cfg.id,
+      data: {
+        type: `runErr`,
+        res: String(error)
+      },
+    });
   }
-  parentPort.postMessage({
-    type: `send`,
-    id: obj.id,
-    wsId,
-    resObj,
-  });
+
+  /**
+   * 将输入的代码转换为函数形式
+   * @param {*} input 
+   * @returns 
+   */
+  function transformCode(input) {
+    let newStr = input
+    
+    // 创建正则表达式来匹配形如 "fn_" 开头的字符串
+    const fnRegex = /"fn_[a-zA-Z0-9_]+"/g;
+
+    // 使用字符串的 replace 方法，将匹配的内容替换为函数形式
+    if(input.match(fnRegex)) {
+      newStr = input.replace(fnRegex, match => {
+        // 提取标记并去除双引号
+        const fnId = match.slice(1, -1);
+        
+        // 返回替换为箭头函数的模板字符串
+        
+        return util.removeLeft(`
+          (...args) => {
+            let done = false;
+            let data = undefined;
+            ${fnId} = {
+              args,
+              size: args.length,
+              done(res) {
+                done = true;
+                data = res;
+              }
+            };
+            parentPort.postMessage({
+              id: "${cfg.id}",
+              data: {
+                type: "cbArg",
+                res: ["${fnId}"]
+              },
+            });
+            deasync.loopWhile(() => !done);
+            delete ${fnId}
+            return data;
+          }
+        `);
+      });
+    }
+    console.log(`newStr`, newStr)
+    return newStr
+  }
+
 }
 
 
 parentPort.on(`message`, (data) => {
-  if(data.type === `run`) {
-    run(data.wsId, data.obj)
-  }
+  run(data)
 });
