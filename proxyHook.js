@@ -1,17 +1,23 @@
 const DeepProxy = require(`proxy-deep`)
 const util = require(`./util.js`)
 
-function deepTraverseAndReplace(item, { idKey, proxyTag } = {}) {
+function deepTraverseAndReplace(item, opt = {}) {
+  opt = util.mergeWithoutUndefined({
+    idKey: undefined,
+    proxyTag: undefined,
+    fnTag: undefined,
+    getId: undefined,
+  }, opt)
   // 判断是否是对象或数组
   if (typeof item === 'object' && item !== null) {
       // 如果是代理对象并且包含 proxyTag 属性，则直接返回 proxyTag 属性的值
-      if (item[proxyTag] !== undefined) {
-        return `${proxyTag}${item[idKey]}`
+      if (item[opt.proxyTag] !== undefined) {
+        return `${opt.proxyTag}${item[opt.idKey]}`
       }
 
       // 如果是数组，则遍历数组元素
       if (Array.isArray(item)) {
-        return item.map(item => deepTraverseAndReplace(item, { idKey, proxyTag }));
+        return item.map(item => deepTraverseAndReplace(item, opt));
       }
 
       // 如果是对象，则遍历对象的键和值
@@ -20,18 +26,27 @@ function deepTraverseAndReplace(item, { idKey, proxyTag } = {}) {
         if (item.hasOwnProperty(key)) {
           const value = item[key];
           // 递归调用 deepTraverseAndReplace 处理值
-          convertedObj[key] = deepTraverseAndReplace(value, { idKey, proxyTag });
+          convertedObj[key] = deepTraverseAndReplace(value, opt);
         }
       }
       return convertedObj;
-  } else if (typeof item === 'function' && item[proxyTag] !== undefined) {
-    return `${proxyTag}${item[idKey]}`
+  } else if (typeof item === 'function') {
+    if(item[opt.proxyTag] !== undefined) { // 如果是代理函数就添加代理标记
+      return `${opt.proxyTag}${item[opt.idKey]}`
+    } else { // 如果是普通函数则不进行任何处理
+      return item
+    }
   } else {
     return item
   }
 }
 
 module.exports = (opt = {}) => {
+  let startId = 0
+  const getId = () => {
+    startId = startId + 1
+    return String(`_${startId}`)
+  }
   opt = util.mergeWithoutUndefined({
     userData: {}, // object
     id: ``, // string
@@ -39,12 +54,9 @@ module.exports = (opt = {}) => {
     idKey: `idKey_${util.guid()}`, // 当前id
     parentKey: `parentKey_${util.guid()}`, // 父级id
     proxyTag: `proxyTag_${util.guid()}`, // 有这个标记这说明是代理对象
+    fnTag: `fn_${util.guid()}`, // 有这个标记这说明是普通函数
+    getId, // id 生成器
   }, opt)
-  let startId = 0
-  const getId = () => {
-    startId = startId + 1
-    return String(`_${startId}`)
-  }
   const getFn = ({ parent, id = getId() } = {}) => {
     const fn = () => { }
     fn[opt.idKey] = id
@@ -74,7 +86,7 @@ module.exports = (opt = {}) => {
       const data = {
         ...getFn({ parent: target[opt.idKey] }),
         type: `apply`,
-        args: deepTraverseAndReplace(args, { idKey: opt.idKey, proxyTag: opt.proxyTag }),
+        args: deepTraverseAndReplace(args, opt),
         thisArgId: thisArg[opt.idKey],
       }
       return opt.hook(this, data)
@@ -84,7 +96,7 @@ module.exports = (opt = {}) => {
         ...getFn({ parent: target[opt.idKey] }),
         type: `set`,
         key,
-        value: deepTraverseAndReplace(value, { idKey: opt.idKey, proxyTag: opt.proxyTag }),
+        value: deepTraverseAndReplace(value, opt),
       }
       return opt.hook(this, data)
     },

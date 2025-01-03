@@ -40,9 +40,10 @@ function getSdk(key = `rpc`) {
     /**
      * 调用远程 run 方法, params 仅支持数组
      * @param {*} params 
+     * @param {*} ctx 上下文信息
      * @returns 
      */
-    sdk.run = async (params = []) => {
+    sdk.run = async (params = [], ctx) => {
       const id = rpc.id = (rpc.id || 0) + 1
       const data = {
         jsonrpc: `2.0`,

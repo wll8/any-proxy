@@ -69,7 +69,7 @@ async function run(cfg) {
   console.log(cfg.code)
   const fnCode = util.removeLeft(`
     ;((...${cfg.argsName}) => {
-      ${cfg.code}
+      ${transformCode(cfg.code)}
     })(${cfg.args.map(item => JSON.stringify(item)).join(`, `)});`)
   let res = []
   try {
@@ -123,6 +123,56 @@ async function run(cfg) {
       },
     });
   }
+
+  /**
+   * 将输入的代码转换为函数形式
+   * @param {*} input 
+   * @returns 
+   */
+  function transformCode(input) {
+    let newStr = input
+    
+    // 创建正则表达式来匹配形如 "fn_" 开头的字符串
+    const fnRegex = /"fn_[a-zA-Z0-9_]+"/g;
+
+    // 使用字符串的 replace 方法，将匹配的内容替换为函数形式
+    if(input.match(fnRegex)) {
+      newStr = input.replace(fnRegex, match => {
+        // 提取标记并去除双引号
+        const fnId = match.slice(1, -1);
+        
+        // 返回替换为箭头函数的模板字符串
+        
+        return util.removeLeft(`
+          (...args) => {
+            let done = false;
+            let data = undefined;
+            ${fnId} = {
+              args,
+              size: args.length,
+              done(res) {
+                done = true;
+                data = res;
+              }
+            };
+            parentPort.postMessage({
+              id: "${cfg.id}",
+              data: {
+                type: "cbArg",
+                res: ["${fnId}"]
+              },
+            });
+            deasync.loopWhile(() => !done);
+            delete ${fnId}
+            return data;
+          }
+        `);
+      });
+    }
+    console.log(`newStr`, newStr)
+    return newStr
+  }
+
 }
 
 

@@ -7,9 +7,10 @@ const hookRun = (opt) => {
     runType: `mainRuner`,
     clearKey: `clear`,
     exitKey: `exit`,
-    idKey: `idKey_${util.guid()}`, // 当前id
-    parentKey: `parentKey_${util.guid()}`, // 父级id
-    proxyTag: `proxyTag_${util.guid()}`, // 有这个标记这说明是代理对象
+    idKey: `idKey_${util.guid()}`,
+    parentKey: `parentKey_${util.guid()}`,
+    proxyTag: `proxyTag_${util.guid()}`,
+    fnTag: `fn_${util.guid()}`,
     userData: {
       info: {
         dataList: [],
@@ -27,6 +28,7 @@ const hookRun = (opt) => {
     idKey: opt.idKey,
     parentKey: opt.parentKey,
     proxyTag: opt.proxyTag,
+    fnTag: opt.fnTag,
     hook(...args) {
       const [_this, data] = args
       if (data.type === `get` && [

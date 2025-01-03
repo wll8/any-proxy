@@ -1,5 +1,6 @@
 require(`util`).inspect.defaultOptions.depth = 4 // console.log 展开对象
 const util = require('./util.js')
+const hookToCode = require('./hookToCode.js')
 const WebSocket = require('rpc-websockets').Client
 const ws = new WebSocket('ws://127.0.0.1:30005')
 const mitt = require('mitt')
@@ -38,66 +39,52 @@ const sendRun = (opt) => {
   })
 }
 
-ws.on('open', function() {
+ws.on('open', async () => {
   ws.subscribe(`codeMsg`)
   ws.on(`codeMsg`, (idInfo) => {
     emitter.emit(idInfo.id, idInfo)
   })
-  const fnId = `fn_1`
-  const id = util.guid()
-  sendRun({
-    id,
-    code: `
-      v_1 = Array;
-      v_2 = v_1.from;
-      v_3 = v_2.apply(v_1, [[1,2,3,4]]);
-      v_4 = v_3.findIndex;
-      v_5 = v_4.apply(v_3, [(...args) => {
-        let done = false;
-        let data = undefined;
-        ${fnId} = {
-          args,
-          size: args.length,
-          done(res) {
-            done = true;
-            data = res;
-          }
-        };
-        parentPort.postMessage({
-          id: "${id}",
-          data: {
-            type: "cbArg",
-            res: ["${fnId}"]
+  const sdk = {
+    async run([opt], ctx) {
+      return new Promise((resolve, reject) => {
+        const id = util.guid()
+        sendRun({
+          id,
+          ...opt,
+          sendOk(){},
+          runErr(idInfo){
+            reject(idInfo.data.res)
           },
-        });
-        deasync.loopWhile(() => !done);
-        delete ${fnId}
-        return data;
-      }]);
-      return v_5;
-    `,
-    args: [1, 2, 3],
-    cbArg: (idInfo) => {
-      const id = util.guid()
-      sendRun({
-        id,
-        code: `
-          return fn_1.args
-        `,
-        runOk(idInfo){
-          const [[item, index]] = idInfo.data.res
-          console.log(`runOk`, idInfo)
-          const id = util.guid()
-          const res = item === 2
-          sendRun({
-            id,
-            code: `
-              return fn_1.done(${res})
-            `,
-          })
-        },
+          runOk(idInfo){
+            resolve(idInfo.data.res)
+          },
+          cbArg: async (idInfo) => {
+            const [fnId] = idInfo.data.res
+            const fn = ctx.idToFn(fnId)
+            const { proxy } = hookToCode({sdk, variablePrefix: `cb`})
+            const args = proxy[fnId].args
+            const size = await proxy[fnId].size
+            const argsProxy = Array.from({length: size}).map((item, index) => args[index])
+            const fnRes = await fn(...argsProxy)
+            await proxy[fnId].done(fnRes)
+          },
+        })
       })
-      console.log(`cbArg`, idInfo.data.res)
-    },
+    }
+
+  }
+  const { proxy } = hookToCode({sdk})
+  globalThis.proxy = proxy
+  proxy.console.log(`hello`)
+  const arr = [`a`, `b`, `c`]
+  console.time()
+  const x = await proxy.Array.from(arr).findIndex(async (item, index) => {
+    item = await item
+    index = await index
+    console.log({item, index})
+    return item === `b`
   })
+  console.timeEnd()
+  console.log(`x`, x)
+  await proxy.clear()
 })

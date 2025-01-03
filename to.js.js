@@ -24,6 +24,7 @@ function getPath(id, list) {
 function tool(config) {
   config = util.mergeWithoutUndefined({
     proxyTag: ``,
+    fnTag: ``,
     /**
      * 自动生成的中间变量名前缀
      */
@@ -43,6 +44,11 @@ function tool(config) {
     },
     runType: `mainRuner`,
   }, config)
+
+  /**
+   * 存储 ID 到函数的映射
+   */
+  const idToFunction = {}
 
   /**
    * 存储 ID 到变量名的映射
@@ -99,10 +105,20 @@ function tool(config) {
         const thisArg = thisArgId ? idToVarName[thisArgId] : 'null';
         // 递归转换代理标记为变量名
         function replaceProxyTag(args) {
-          const list = args.map(item => {
+          const list = args.map((item, index) => {
             const re = new RegExp(`"${config.proxyTag}(_[0-9]+)"`, `gm`)
-            item = typeof(item) === `undefined` ? null : item
-            return JSON.stringify(item).replace(re, `${config.variablePrefix}$1`)
+            const itemType = typeof(item)
+            let newItem = ``
+            if([`undefined`, `null`].includes(itemType)) {
+              newItem = `null`
+            } else if([`function`].includes(itemType)) {
+              const fnId = `${config.fnTag}_${prefix.replace(/[\.\[\]]/g, `_`)}${index}`
+              idToFunction[fnId] = item
+              newItem = `"${fnId}"`
+            } else {
+              newItem = JSON.stringify(item).replace(re, `${config.variablePrefix}$1`)
+            }
+            return newItem
           })
           return list.join(`, `)
         }
@@ -198,6 +214,7 @@ function tool(config) {
      * @returns 
      */
     run(code, ignoreErr = false) {
+      const codeRunTool = this
       return new Promise(async (resolve, reject) => {
         try {
           if(!ignoreErr && this.errList.length) {
@@ -207,7 +224,7 @@ function tool(config) {
           config.sdk.run([{
             code,
             runType: config.runType,
-          }]).then(([res]) => {
+          }], codeRunTool).then(([res]) => {
             resolve(res)
           }).catch((err) => {
             this.errList.push(err)
@@ -220,6 +237,14 @@ function tool(config) {
       })
     }
 
+    /**
+     * 根据 id 获取对应的函数
+     * @param {*} id 
+     */
+    idToFn(id) {
+      return idToFunction[id]
+    }
+    
     /**
      * 保存即将运行的代码片段
      * @param {*} code 
