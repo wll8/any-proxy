@@ -89,6 +89,28 @@ function tool(config) {
       : config.globalNamespace ?
         `${config.globalNamespace}.` 
         : ``;
+
+    // 递归转换代理标记为变量名
+    function replaceProxyTag(args) {
+      const list = args.map((item, index) => {
+        const re = new RegExp(`"${config.proxyTag}(_[0-9]+)"`, `gm`)
+        const itemType = util.isType(item)
+        let newItem = ``
+        if([`undefined`, `null`].includes(itemType)) {
+          newItem = `null`
+        } else if([`asyncfunction`, `function`].includes(itemType)) {
+          const fnId = `${config.fnTag}_${prefix.replace(/[\.\[\]]/g, `_`)}${index}`
+          idToFunction[fnId] = item
+          newItem = `"${fnId}"`
+        } else {
+          newItem = JSON.stringify(item).replace(re, `${config.variablePrefix}$1`)
+        }
+        return newItem
+      })
+      return list
+    }
+        
+        
     const typeObj = {
       'get'() {
         const fullPath = util.replaceIdsWithKeys(getPath(id, dataList).map(item => item.key).filter(item => {
@@ -103,36 +125,16 @@ function tool(config) {
       },
       'apply'() {
         const thisArg = thisArgId ? idToVarName[thisArgId] : 'null';
-        // 递归转换代理标记为变量名
-        function replaceProxyTag(args) {
-          const list = args.map((item, index) => {
-            const re = new RegExp(`"${config.proxyTag}(_[0-9]+)"`, `gm`)
-            const itemType = typeof(item)
-            let newItem = ``
-            if([`undefined`, `null`].includes(itemType)) {
-              newItem = `null`
-            } else if([`function`].includes(itemType)) {
-              const fnId = `${config.fnTag}_${prefix.replace(/[\.\[\]]/g, `_`)}${index}`
-              idToFunction[fnId] = item
-              newItem = `"${fnId}"`
-            } else {
-              newItem = JSON.stringify(item).replace(re, `${config.variablePrefix}$1`)
-            }
-            return newItem
-          })
-          return list.join(`, `)
-        }
         
-        
-        const evalArgs = replaceProxyTag(args);
+        const evalArgs = replaceProxyTag(args).join(`, `);
         codeList.push([
           `${config.variableKeyword} ${varName} = ${prefix}apply(${thisArg}, [${evalArgs}]);`.trim(),
         ].join(`\n`))
       },
       'set'() {
         const setKey = util.replaceIdsWithKeys(`${prefix}${key}`);
-        const valueArgs = String(value).startsWith(config.proxyTag) ? idToVarName[value.replace(config.proxyTag, '')] : JSON.stringify(value);
-        codeList.push(`${setKey} = ${valueArgs};`)
+        const evalArgs = replaceProxyTag([value])[0];
+        codeList.push(`${setKey} = ${evalArgs};`)
       },
     }
     typeObj[type] && typeObj[type]()

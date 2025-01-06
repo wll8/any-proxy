@@ -13,6 +13,18 @@ async function runnerTest(opt = {}) {
   opt = util.mergeWithoutUndefined({
     sdk,
   }, opt)
+  test(`赋值函数`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const id = util.guid()
+    proxy[id] = (err, res) => {
+      files = res
+    }
+    let files = []
+    proxy.require(`fs`).readdir(proxy.__dirname, proxy[id])
+    await util.sleep(1e3)
+    expect(files).includes(`node_modules`)
+    await proxy.clear()
+  })
   test(`在参数中发送函数 -- sync -- findIndex 在数组中查找内容`, async () => {
     const { proxy } = hookToCode({sdk})
     const res = await proxy.Array.from([`a`, `b`, `c`]).findIndex((item, index, arr) => {
@@ -666,14 +678,16 @@ describe(`mainRuner`, async () => {
   await runnerTest({
     runType: `mainRuner`,
   })
-  test.todo(`设置函数`, async () => {
+  test.skip(`赋值对象中的函数`, async () => {
     const { proxy } = hookToCode({sdk})
-    const id = util.guid
-    proxy[id] = (err, res) => {
-      files = res
+    const id = util.guid()
+    proxy[id] = {
+      fn: (err, res) => {
+        files = res
+      }
     }
     let files = []
-    proxy.require(`fs`).readdir(proxy.__dirname, proxy[id])
+    proxy.require(`fs`).readdir(proxy.__dirname, proxy[id].fn)
     await util.sleep(1e3)
     expect(files).includes(`node_modules`)
     await proxy.clear()
