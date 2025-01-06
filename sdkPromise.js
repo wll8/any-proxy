@@ -33,7 +33,6 @@ function getSdk(key = `rpc`) {
             emitter.off(opt.id)
           } else if(idInfo.data.type === `runOk`) {
             opt.runOk(idInfo)
-            emitter.off(opt.id)
           } else if(idInfo.data.type === `cbArg`) {
             opt.cbArg(idInfo)
           }
@@ -65,11 +64,14 @@ function getSdk(key = `rpc`) {
                 const [fnId] = idInfo.data.res
                 const fn = ctx.idToFn(fnId)
                 const { proxy } = hookToCode({sdk, variablePrefix: `cb`})
-                const args = proxy[fnId].args
+                let args = proxy[fnId].args
+                if(util.isType(fn, `function`)) {
+                  args = await args
+                }
                 const size = await proxy[fnId].size
                 const argsProxy = Array.from({length: size}).map((item, index) => args[index])
                 const fnRes = await fn(...argsProxy)
-                await proxy[fnId].done(fnRes)
+                await proxy[fnId].next(fnRes)
               },
             })
           })

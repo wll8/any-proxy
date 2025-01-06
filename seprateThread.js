@@ -66,7 +66,7 @@ async function run(cfg) {
     // 函数的参数名
     argsName: `args`,
   }, cfg)
-  console.log(cfg.code)
+  console.log(`cfg.code`, cfg.code)
   const fnCode = util.removeLeft(`
     ;((...${cfg.argsName}) => {
       ${transformCode(cfg.code)}
@@ -150,7 +150,7 @@ async function run(cfg) {
             ${fnId} = {
               args,
               size: args.length,
-              done(res) {
+              next(res) {
                 done = true;
                 data = res;
               }
@@ -168,6 +168,10 @@ async function run(cfg) {
           }
         `);
       });
+      newStr = [
+        newStr,
+        ``,
+      ].join(`\n`)
     }
     console.log(`newStr`, newStr)
     return newStr

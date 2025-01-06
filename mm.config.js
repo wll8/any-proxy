@@ -20,6 +20,9 @@ server.register('run', (codeInfo) => {
   }
 })
 
+const cli = process.argv.map(item => `"${item}"`).join(` `)
+console.log(cli)
+
 /**
  * @see: https://www.hongqiye.com/doc/mockm/config/option.html
  * @type {import('mockm/@types/config').Config}

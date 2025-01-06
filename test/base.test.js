@@ -13,6 +13,51 @@ async function runnerTest(opt = {}) {
   opt = util.mergeWithoutUndefined({
     sdk,
   }, opt)
+  test(`在参数中发送函数 -- sync -- findIndex 在数组中查找内容`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const res = await proxy.Array.from([`a`, `b`, `c`]).findIndex((item, index, arr) => {
+      console.log({item, index, arr})
+      return item === `b`
+    })
+    console.log({res})
+    await proxy.clear()
+    expect(res).toBe(1)
+  })
+  test(`在参数中发送函数 -- async -- findIndex 在数组中查找内容`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const res = await proxy.Array.from([`a`, `b`, `c`]).findIndex(async (item, index, arr) => {
+      item = await item
+      index = await index
+      arr = await arr
+      console.log({item, index, arr})
+      return item === `b`
+    })
+    console.log({res})
+    await proxy.clear()
+    expect(res).toBe(1)
+  })
+  test(`在参数中发送函数 -- sync -- fs.readdir 回调函数`, async () => {
+    const { proxy } = hookToCode({sdk})
+    let files = []
+    proxy.require(`fs`).readdir(proxy.__dirname, (err, res) => {
+      files = res
+    })
+    await util.sleep(1e3)
+    expect(files).includes(`node_modules`)
+    await proxy.clear()
+  })
+  test(`在参数中发送函数 -- async -- fs.readdir 回调函数`, async () => {
+    const { proxy } = hookToCode({sdk})
+    let files = []
+    proxy.require(`fs`).readdir(proxy.__dirname, async (err, res) => {
+      err = await err
+      res = await res
+      files = res
+    })
+    await util.sleep(1e3)
+    expect(files).includes(`node_modules`)
+    await proxy.clear()
+  })
   test(`proxy.process.env.OS -- 即时取值`, async () => {
     const { proxy } = hookToCode(opt)
     const OS = await proxy.process.env.OS
@@ -617,8 +662,21 @@ describe(`配置项`, async () => {
   })
 }, 10 * 1e3)
 describe(`mainRuner`, async () => {
+  const sdk = await require(`../sdkPromise.js`).getSdk()
   await runnerTest({
     runType: `mainRuner`,
+  })
+  test.todo(`设置函数`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const id = util.guid
+    proxy[id] = (err, res) => {
+      files = res
+    }
+    let files = []
+    proxy.require(`fs`).readdir(proxy.__dirname, proxy[id])
+    await util.sleep(1e3)
+    expect(files).includes(`node_modules`)
+    await proxy.clear()
   })
 }, 10 * 1e3)
 describe(`mainRunerOnce`, async () => {
