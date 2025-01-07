@@ -16,10 +16,10 @@ async function runnerTest(opt = {}) {
   test(`赋值函数`, async () => {
     const { proxy } = hookToCode({sdk})
     const id = util.guid()
+    let files = []
     proxy[id] = (err, res) => {
       files = res
     }
-    let files = []
     proxy.require(`fs`).readdir(proxy.__dirname, proxy[id])
     await util.sleep(1e3)
     expect(files).includes(`node_modules`)
@@ -28,6 +28,7 @@ async function runnerTest(opt = {}) {
   test(`赋值代理对象中的函数`, async () => {
     const { proxy } = hookToCode({sdk})
     const id = util.guid()
+    let files = []
     proxy[id] = {
       msg: `hello`,
       arr: [
@@ -42,7 +43,6 @@ async function runnerTest(opt = {}) {
         }
       ]
     }
-    let files = []
     proxy.require(`fs`).readdir(proxy.__dirname, proxy[id].arr[1].obj.fn)
     await util.sleep(1e3)
     expect(files).includes(`node_modules`)
