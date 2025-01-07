@@ -145,14 +145,19 @@ async function run(cfg) {
         
         return util.removeLeft(`
           (...args) => {
-            let done = false;
-            let data = undefined;
+            let fnDone = false;
+            let fnRes = undefined;
+            let fnErr = undefined;
             ${fnId} = {
               args,
               size: args.length,
-              next(res) {
-                done = true;
-                data = res;
+              next(res, err) {
+                fnDone = true;
+                fnRes = res;
+                if(err) {
+                  throw err;
+                }
+                fnErr = err;
               }
             };
             parentPort.postMessage({
@@ -162,9 +167,9 @@ async function run(cfg) {
                 res: ["${fnId}"]
               },
             });
-            deasync.loopWhile(() => !done);
+            deasync.loopWhile(() => !fnDone);
             delete ${fnId}
-            return data;
+            return fnRes;
           }
         `);
       });

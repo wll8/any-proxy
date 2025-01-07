@@ -70,8 +70,14 @@ function getSdk(key = `rpc`) {
                 }
                 const size = await proxy[fnId].size
                 const argsProxy = Array.from({length: size}).map((item, index) => args[index])
-                const fnRes = await fn(...argsProxy)
-                await proxy[fnId].next(fnRes)
+                let fnRes
+                let fnErr
+                try {
+                  fnRes = await fn(...argsProxy)
+                } catch (error) {
+                  fnErr = String(error)
+                }
+                await proxy[fnId].next(fnRes, fnErr)
               },
             })
           })
