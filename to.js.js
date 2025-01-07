@@ -92,22 +92,19 @@ function tool(config) {
 
     // 递归转换代理标记为变量名
     function replaceProxyTag(args) {
-      const list = args.map((item, index) => {
-        const re = new RegExp(`"${config.proxyTag}(_[0-9]+)"`, `gm`)
+      const re = new RegExp(`"${config.proxyTag}(_[0-9]+)"`, `gm`)
+      let str = JSON.stringify(args, (key, item) => {
         const itemType = util.isType(item)
-        let newItem = ``
-        if([`undefined`, `null`].includes(itemType)) {
-          newItem = `null`
-        } else if([`asyncfunction`, `function`].includes(itemType)) {
-          const fnId = `${config.fnTag}_${prefix.replace(/[\.\[\]]/g, `_`)}${index}`
+        let newItem = item
+        if([`asyncfunction`, `function`].includes(itemType)) {
+          const fnId = `${config.fnTag}_${prefix.replace(/[\.\[\]]/g, `_`)}${util.guid()}`
           idToFunction[fnId] = item
-          newItem = `"${fnId}"`
-        } else {
-          newItem = JSON.stringify(item).replace(re, `${config.variablePrefix}$1`)
+          newItem = fnId
         }
         return newItem
-      })
-      return list
+      });
+      str = str.replace(re, `${config.variablePrefix}$1`)
+      return str
     }
         
         
@@ -126,14 +123,14 @@ function tool(config) {
       'apply'() {
         const thisArg = thisArgId ? idToVarName[thisArgId] : 'null';
         
-        const evalArgs = replaceProxyTag(args).join(`, `);
+        const evalArgs = replaceProxyTag(args);
         codeList.push([
-          `${config.variableKeyword} ${varName} = ${prefix}apply(${thisArg}, [${evalArgs}]);`.trim(),
+          `${config.variableKeyword} ${varName} = ${prefix}apply(${thisArg}, ${evalArgs});`.trim(),
         ].join(`\n`))
       },
       'set'() {
         const setKey = util.replaceIdsWithKeys(`${prefix}${key}`);
-        const evalArgs = replaceProxyTag([value])[0];
+        const evalArgs = replaceProxyTag(value);
         codeList.push(`${setKey} = ${evalArgs};`)
       },
     }
