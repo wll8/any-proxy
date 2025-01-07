@@ -25,6 +25,57 @@ async function runnerTest(opt = {}) {
     expect(files).includes(`node_modules`)
     await proxy.clear()
   })
+  test(`赋值代理对象中的函数`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const id = util.guid()
+    proxy[id] = {
+      msg: `hello`,
+      arr: [
+        `hello`,
+        {
+          obj: {
+            msg: `hello`,
+            fn: (err, res) => {
+              files = res
+            }
+          }
+        }
+      ]
+    }
+    let files = []
+    proxy.require(`fs`).readdir(proxy.__dirname, proxy[id].arr[1].obj.fn)
+    await util.sleep(1e3)
+    expect(files).includes(`node_modules`)
+    await proxy.clear()
+  })
+  test(`多个参数都是函数`, async () => {
+    const { proxy } = hookToCode({sdk})
+    const id = util.guid()
+    await sdk.run([
+      {
+        code: util.removeLeft(`
+          ${id} = (...fns) => {
+            const res = fns.reduce((acc, fn, index) => {
+              acc.push(fn(...("x".repeat(index + 1))))
+              return acc
+            }, [])
+            return res
+          }
+        `),
+      }
+    ])
+    const res = await proxy[id]((...args) => {
+      return args.length
+    }, (...args) => {
+      return args.length
+    }, (...args) => {
+      return args.length
+    })
+    console.log({res})
+    await util.sleep(1e3)
+    expect([1, 2, 3]).toStrictEqual(res)
+    await proxy.clear()
+  })
   test(`在参数中发送函数 -- sync -- findIndex 在数组中查找内容`, async () => {
     const { proxy } = hookToCode({sdk})
     const res = await proxy.Array.from([`a`, `b`, `c`]).findIndex((item, index, arr) => {
@@ -677,20 +728,6 @@ describe(`mainRuner`, async () => {
   const sdk = await require(`../sdkPromise.js`).getSdk()
   await runnerTest({
     runType: `mainRuner`,
-  })
-  test.skip(`赋值对象中的函数`, async () => {
-    const { proxy } = hookToCode({sdk})
-    const id = util.guid()
-    proxy[id] = {
-      fn: (err, res) => {
-        files = res
-      }
-    }
-    let files = []
-    proxy.require(`fs`).readdir(proxy.__dirname, proxy[id].fn)
-    await util.sleep(1e3)
-    expect(files).includes(`node_modules`)
-    await proxy.clear()
   })
 }, 10 * 1e3)
 describe(`mainRunerOnce`, async () => {
