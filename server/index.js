@@ -4,7 +4,7 @@ const server = new WebSocketServer({
   port: 30005,
   host: '0.0.0.0'
 })
-const seprateThread = new Worker(`./seprateThread.js`);
+const seprateThread = new Worker(`${__dirname}/seprateThread.js`);
 seprateThread.on(`message`, (data) => {
   server.emit(`codeMsg`, data)
 });
@@ -23,14 +23,3 @@ server.register('run', (codeInfo) => {
 const cli = process.argv.map(item => `"${item}"`).join(` `)
 console.log(cli)
 
-/**
- * @see: https://www.hongqiye.com/doc/mockm/config/option.html
- * @type {import('mockm/@types/config').Config}
- */
-module.exports = mockmUtil => {
-  return {
-    port: 20005,
-    testPort: 20006,
-    replayPort: 20007,
-  }
-}

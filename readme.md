@@ -33,8 +33,8 @@ expect(res).toStrictEqual(2)
 pnpm i
 
 # 运行 rpc 服务
-npx mm
+pnpm run server
 
 # 运行测试用例
-pnpm test
+pnpm run test
 ```

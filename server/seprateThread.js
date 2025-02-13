@@ -1,7 +1,7 @@
 const deasync = require(`deasync`);
 const { parentPort } = require(`worker_threads`);
 const {VM} = require('vm2');
-const util = require('./util.js');
+const util = require('../util.js');
 
 /**
  * 获取虚拟机

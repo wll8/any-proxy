@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
+    "server": "npx nodemon --watch server --exec \"node server/index.js\"",
     "test": "vitest --reporter=basic --slowTestThreshold=50"
   },
   "keywords": [],
@@ -16,5 +17,8 @@
     "vitest": "^2.1.5",
     "vm2": "^3.9.19",
     "websocket": "^1.0.35"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
   }
 }

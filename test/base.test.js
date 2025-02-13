@@ -20,9 +20,10 @@ async function runnerTest(opt = {}) {
     proxy[id] = (err, res) => {
       files = res
     }
+    const __filename = await proxy.require(`path`).parse(await proxy.__filename).base
     proxy.require(`fs`).readdir(proxy.__dirname, proxy[id])
     await util.sleep(1e3)
-    expect(files).includes(`node_modules`)
+    expect(files).includes(__filename)
     await proxy.clear()
   })
   test(`赋值代理对象中的函数`, async () => {
@@ -43,9 +44,10 @@ async function runnerTest(opt = {}) {
         }
       ]
     }
+    const __filename = await proxy.require(`path`).parse(await proxy.__filename).base
     proxy.require(`fs`).readdir(proxy.__dirname, proxy[id].arr[1].obj.fn)
     await util.sleep(1e3)
-    expect(files).includes(`node_modules`)
+    expect(files).includes(__filename)
     await proxy.clear()
   })
   test(`多个参数都是函数`, async () => {
@@ -102,23 +104,25 @@ async function runnerTest(opt = {}) {
   test(`在参数中发送函数 -- sync -- fs.readdir 回调函数`, async () => {
     const { proxy } = hookToCode({sdk})
     let files = []
+    const __filename = await proxy.require(`path`).parse(await proxy.__filename).base
     proxy.require(`fs`).readdir(proxy.__dirname, (err, res) => {
       files = res
     })
     await util.sleep(1e3)
-    expect(files).includes(`node_modules`)
+    expect(files).includes(__filename)
     await proxy.clear()
   })
   test(`在参数中发送函数 -- async -- fs.readdir 回调函数`, async () => {
     const { proxy } = hookToCode({sdk})
     let files = []
+    const __filename = await proxy.require(`path`).parse(await proxy.__filename).base
     proxy.require(`fs`).readdir(proxy.__dirname, async (err, res) => {
       err = await err
       res = await res
       files = res
     })
     await util.sleep(1e3)
-    expect(files).includes(`node_modules`)
+    expect(files).includes(__filename)
     await proxy.clear()
   })
   test(`proxy.process.env.OS -- 即时取值`, async () => {
