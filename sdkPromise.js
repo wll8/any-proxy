@@ -6,12 +6,18 @@ const WebSocket = require('rpc-websockets').Client
 const mitt = require('mitt')
 const emitter = mitt()
 
+/**
+ * 根据 key 在全局变量中获取 sdk 配置并返回 sdkPromise
+ * @param {*} key -- 全局变量名, 默认为 rpc
+ * @returns 
+ */
 function getSdk(key = `rpc`) {
-  globalThis[key] = globalThis[key] || {}
-  const rpc = globalThis[key]
-  rpc.wsLink = `ws://127.0.0.1:30005`;
-  rpc.sdkPromise = rpc.sdkPromise || new Promise(async (resolve, reject) => {
-    const ws = new WebSocket(rpc.wsLink)
+  globalThis[key] = util.mergeWithoutUndefined({
+    wsLink: `ws://127.0.0.1:30005`,
+    sdkPromise: undefined,
+  }, globalThis[key] || {})
+  globalThis[key].sdkPromise = globalThis[key].sdkPromise || new Promise(async (resolve, reject) => {
+    const ws = new WebSocket(globalThis[key].wsLink)
     const sendRun = (opt) => {
       opt = util.mergeWithoutUndefined({
         id: ``,
@@ -63,7 +69,7 @@ function getSdk(key = `rpc`) {
               cbArg: async (idInfo) => {
                 const [fnId] = idInfo.data.res
                 const fn = ctx.idToFn(fnId)
-                const { proxy } = hookToCode({sdk, variablePrefix: `cb`})
+                const { proxy } = hookToCode({toolOpt: {sdk, variablePrefix: `cb`}})
                 let args = proxy[fnId].args
                 if(util.isType(fn, `function`)) {
                   args = await args
@@ -88,7 +94,7 @@ function getSdk(key = `rpc`) {
     })
     ws.on(`error`, reject)
   });
-  return rpc.sdkPromise
+  return globalThis[key].sdkPromise
 }
 module.exports = {
   getSdk,

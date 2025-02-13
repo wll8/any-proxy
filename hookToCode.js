@@ -1,34 +1,35 @@
 const util = require(`./util.js`)
 const proxyHook = require(`./proxyHook.js`)
 const tool = require(`./to.js.js`)
-const hookRun = (opt) => {
+const hookToCode = (opt) => {
   opt = util.mergeWithoutUndefined({
-    sdk: undefined,
-    runType: `mainRuner`,
-    clearKey: `clear`,
-    exitKey: `exit`,
-    idKey: `idKey_${util.guid()}`,
-    parentKey: `parentKey_${util.guid()}`,
-    proxyTag: `proxyTag_${util.guid()}`,
-    fnTag: `fn_${util.guid()}`,
-    userData: {
-      info: {
-        dataList: [],
-        codeList: [],
-        endLine: ``,
+    toolOpt: {
+      runType: `mainRuner`,
+      proxyTag: `proxyTag_${util.guid()}`,
+      fnTag: `fn_${util.guid()}`,
+    },
+    proxyHookOpt: {
+      idKey: `idKey_${util.guid()}`,
+      parentKey: `parentKey_${util.guid()}`,
+      userData: {
+        info: {
+          dataList: [],
+          codeList: [],
+          endLine: ``,
+        },
       },
     },
+    clearKey: `clear`,
+    exitKey: `exit`,
   }, opt)
-  const jsTool = tool({
-    ...opt,
-  })
+  const jsTool = tool(opt.toolOpt)
   const queue = new util.TaskQueue()
   const { proxy, proxyTag, userData } = proxyHook({
-    userData: opt.userData,
-    idKey: opt.idKey,
-    parentKey: opt.parentKey,
-    proxyTag: opt.proxyTag,
-    fnTag: opt.fnTag,
+    userData: opt.proxyHookOpt.userData,
+    idKey: opt.proxyHookOpt.idKey,
+    parentKey: opt.proxyHookOpt.parentKey,
+    proxyTag: opt.toolOpt.proxyTag,
+    fnTag: opt.toolOpt.fnTag,
     hook(...args) {
       const [_this, data] = args
       if (data.type === `get` && [
@@ -47,15 +48,15 @@ const hookRun = (opt) => {
         }
         const promise = new Promise(async (resolve, reject) => {
           queue.addTask(async () => {
-            if([`mainRuner`, `createRuner`].includes(opt.runType)) {
+            if([`mainRuner`, `createRuner`].includes(opt.toolOpt.runType)) {
               const code = jsTool.codeStrTool.getReturnCode(data.parent)
               return jsTool.codeRunTool.run(code).then(resolve).catch(reject)
             }
-            if([`mainRunerOnce`].includes(opt.runType)) {
+            if([`mainRunerOnce`].includes(opt.toolOpt.runType)) {
               const code = jsTool.codeStrTool.getReturnCode(data.parent)
               return jsTool.codeRunTool.runDelayList(code).then(resolve).catch(reject)
             }
-            if([`createRunerOnce`].includes(opt.runType)) {
+            if([`createRunerOnce`].includes(opt.toolOpt.runType)) {
               const code = jsTool.codeStrTool.getReturnCode(data.parent)
               return jsTool.codeRunTool.runDelayList(code).then(resolve).catch(reject)
             }
@@ -64,15 +65,15 @@ const hookRun = (opt) => {
         return promise[data.key].bind(promise)
       } else {
         queue.addTask(async () => {
-          if([`mainRuner`, `createRuner`].includes(opt.runType)) {
+          if([`mainRuner`, `createRuner`].includes(opt.toolOpt.runType)) {
             const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
             return jsTool.codeRunTool.run(code)
           }
-          if([`mainRunerOnce`].includes(opt.runType)) {
+          if([`mainRunerOnce`].includes(opt.toolOpt.runType)) {
             const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
             return jsTool.codeRunTool.addDelayList(code)
           }
-          if([`createRunerOnce`].includes(opt.runType)) {
+          if([`createRunerOnce`].includes(opt.toolOpt.runType)) {
             const code = jsTool.hookDataList2CodeListByYield(data).next().value.at(-1)
             return jsTool.codeRunTool.addDelayList(code)
           }
@@ -80,6 +81,7 @@ const hookRun = (opt) => {
       }
       return _this.nest(data.fn)
     },
+    ...opt.proxyHookOpt,
   })
   return {
     jsTool,
@@ -87,4 +89,4 @@ const hookRun = (opt) => {
   }
 }
 
-module.exports = hookRun
+module.exports = hookToCode

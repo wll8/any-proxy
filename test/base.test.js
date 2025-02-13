@@ -11,10 +11,12 @@ const util = require(`../util.js`)
 async function runnerTest(opt = {}) {
   const sdk = await require(`../sdkPromise.js`).getSdk()
   opt = util.mergeWithoutUndefined({
-    sdk,
+    toolOpt: {
+      sdk,
+    }
   }, opt)
   test(`赋值函数`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     const id = util.guid()
     let files = []
     proxy[id] = (err, res) => {
@@ -27,7 +29,7 @@ async function runnerTest(opt = {}) {
     await proxy.clear()
   })
   test(`赋值代理对象中的函数`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     const id = util.guid()
     let files = []
     proxy[id] = {
@@ -51,7 +53,7 @@ async function runnerTest(opt = {}) {
     await proxy.clear()
   })
   test(`多个参数都是函数`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     const id = util.guid()
     await sdk.run([
       {
@@ -79,7 +81,7 @@ async function runnerTest(opt = {}) {
     await proxy.clear()
   })
   test(`在参数中发送函数 -- sync -- findIndex 在数组中查找内容`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     const res = await proxy.Array.from([`a`, `b`, `c`]).findIndex((item, index, arr) => {
       console.log({item, index, arr})
       return item === `b`
@@ -89,7 +91,7 @@ async function runnerTest(opt = {}) {
     expect(res).toBe(1)
   })
   test(`在参数中发送函数 -- async -- findIndex 在数组中查找内容`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     const res = await proxy.Array.from([`a`, `b`, `c`]).findIndex(async (item, index, arr) => {
       item = await item
       index = await index
@@ -102,7 +104,7 @@ async function runnerTest(opt = {}) {
     expect(res).toBe(1)
   })
   test(`在参数中发送函数 -- sync -- fs.readdir 回调函数`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     let files = []
     const __filename = await proxy.require(`path`).parse(await proxy.__filename).base
     proxy.require(`fs`).readdir(proxy.__dirname, (err, res) => {
@@ -113,7 +115,7 @@ async function runnerTest(opt = {}) {
     await proxy.clear()
   })
   test(`在参数中发送函数 -- async -- fs.readdir 回调函数`, async () => {
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     let files = []
     const __filename = await proxy.require(`path`).parse(await proxy.__filename).base
     proxy.require(`fs`).readdir(proxy.__dirname, async (err, res) => {
@@ -265,7 +267,7 @@ async function runnerTest(opt = {}) {
   })
   test(`不解构数组`, async () => {
     const id = util.guid()
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     proxy[id] = [{a: 1}, {b: 2}]
     const arg0 = proxy[id][0]
     const arg1 = proxy[id][1]
@@ -278,7 +280,7 @@ async function runnerTest(opt = {}) {
   })
   test.todo(`暂不支持解构数组`, async () => {
     const id = util.guid()
-    const { proxy } = hookToCode({sdk})
+    const { proxy } = hookToCode({toolOpt: {sdk}})
     proxy[id] = [{a: 1}, {b: 2}]
     const [arg0, arg1] = proxy[id]
     const res = {
@@ -565,7 +567,9 @@ async function runnerTest(opt = {}) {
 async function onceTest(opt = {}) {
   const sdk = await require(`../sdkPromise.js`).getSdk()
   opt = util.mergeWithoutUndefined({
-    sdk,
+    toolOpt: {
+      sdk,
+    }
   }, opt)
   test(`node.process.env -- 即时取值`, async () => {
     const { proxy } = hookToCode(opt)
@@ -682,7 +686,7 @@ describe(`sdk`, async () => {
 describe(`配置项`, async () => {
   const sdk = await require(`../sdkPromise.js`).getSdk()
   test(`globalNamespace`, async () => {
-    const { proxy } = hookToCode({sdk, globalNamespace: `globalThis`})
+    const { proxy } = hookToCode({toolOpt: {sdk, globalNamespace: `globalThis`}})
     const OS = await proxy.process.env.OS
     const __filename = await proxy.__filename
     console.log({OS})
@@ -692,7 +696,7 @@ describe(`配置项`, async () => {
   })
   test(`variablePrefix`, async () => {
     const id = util.guid()
-    const { proxy } = hookToCode({sdk, variablePrefix: id})
+    const { proxy } = hookToCode({toolOpt: {sdk, variablePrefix: id}})
     // 注意: 故意制造一个错误抛出变量名
     const OS = await proxy.process.env.OS().catch(String)
     await proxy.clear().catch(String)
@@ -700,16 +704,18 @@ describe(`配置项`, async () => {
   })
   test(`variablePrefix - 带点号`, async () => {
     const id = util.guid()
-    const { proxy } = hookToCode({sdk, variablePrefix: `globalThis.${id}`})
+    const { proxy } = hookToCode({toolOpt: {sdk, variablePrefix: `globalThis.${id}`}})
     // 注意: 故意制造一个错误抛出变量名
     const OS = await proxy.process.env.OS().catch(String)
     await proxy.clear().catch(String)
     expect(OS).includes(id)
   })
   test(`lib`, async () => {
-    const { proxy, jsTool } = hookToCode({lib: [
-      `process.env.OS`,
-    ]})
+    const { proxy, jsTool } = hookToCode({
+      toolOpt: {lib: [
+        `process.env.OS`,
+      ]}
+    })
     const OS = await proxy.process.env.OS
     const code = jsTool.codeStrTool.getCodeList().join(`\n`)
     console.log({OS, code})
@@ -719,7 +725,9 @@ describe(`配置项`, async () => {
   test(`clearKey`, async () => {
     const id = util.guid()
     const { proxy } = hookToCode({
-      sdk,
+      toolOpt: {
+        sdk,
+      },
       clearKey: id,
     })
     const OS = await proxy.process.env.OS
@@ -731,21 +739,29 @@ describe(`配置项`, async () => {
 describe(`mainRuner`, async () => {
   const sdk = await require(`../sdkPromise.js`).getSdk()
   await runnerTest({
-    runType: `mainRuner`,
+    toolOpt: {
+      runType: `mainRuner`,
+    },
   })
 }, 10 * 1e3)
 describe(`mainRunerOnce`, async () => {
   await onceTest({
-    runType: `mainRunerOnce`,
+    toolOpt: {
+      runType: `mainRunerOnce`,
+    }
   })
 }, 10 * 1e3)
 describe(`createRuner`, async () => {
   await runnerTest({
-    runType: `createRuner`
+    toolOpt: {
+      runType: `createRuner`,
+    }
   })
 }, 10 * 1e3)
 describe(`createRunerOnce`, async () => {
   await onceTest({
-    runType: `createRunerOnce`,
+    toolOpt: {
+      runType: `createRunerOnce`,
+    },
   })
 }, 10 * 1e3)

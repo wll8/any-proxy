@@ -28,7 +28,7 @@ function removeLeft(str) {
 }
 
 /**
- * 合并对象，undefined 值不覆盖
+ * 合并对象，如果后面对象中的 undefined 值不覆盖前面对象中的值
  * @param  {...any} objects 
  * @returns 
  */
@@ -36,7 +36,20 @@ function mergeWithoutUndefined(...objects) {
   return objects.reduce((acc, obj) => {
     Object.keys(obj).forEach((key) => {
       if (obj[key] !== undefined) {
-        acc[key] = obj[key];
+        if (
+          typeof acc[key] === 'object' && 
+          acc[key] !== null && 
+          typeof obj[key] === 'object' && 
+          obj[key] !== null &&
+          !Array.isArray(acc[key]) && // 排除数组
+          !Array.isArray(obj[key])   // 排除数组
+        ) {
+          // 如果是对象，递归合并
+          acc[key] = mergeWithoutUndefined(acc[key], obj[key]);
+        } else {
+          // 非对象直接赋值
+          acc[key] = obj[key];
+        }
       }
     });
     return acc;
