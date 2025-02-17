@@ -1,8 +1,16 @@
-# hook-run
+# any-proxy
 
-通过 hook 运行远程代码。
+Transform or execute remote code via proxy.
 
-假设你已经有了一个 nodejs rpc 服务，想在服务器上运行以下代码获取最大的那个数:
+
+## Why
+
+If you have a server-side service and want to call certain APIs on the client side, you might initially use RPC to create a method for each API for client-side invocation. As the number of APIs grows, this becomes tedious and time-consuming.
+
+Now, you can use a proxy in the client to represent the server environment. All methods called through the proxy run as if they were executed on the server.
+
+
+For example, if you want to run the following code on the server to get the largest number:
 
 ``` js
 a = 1
@@ -10,31 +18,84 @@ b = 2
 Math.max(a, b)
 ```
 
-那么你可以这么使用:
+You can use it like this:
 
 ``` js
-const hookRun = require(`hook-run`)
-const { proxy: node } = hookRun()
+const { proxy } = anyHook(opt)
 
-node.a = 1
-node.b = 2
-const res = await node.Math.max(node.a, node.b)
+proxy.a = 1
+proxy.b = 2
+const res = await proxy.Math.max(proxy.a, proxy.b)
 expect(res).toStrictEqual(2)
 ```
 
-可以看到，proxy 对象上的函数调用、赋值等操作都会被发送到远程运行。如果你需要获取运行结果，则使用 await 获取。
+Function calls, assignments, and other operations on the proxy object are sent to the remote server for execution. If you need to retrieve the result, use `await`.
 
-注意: `node.a = 1` 等于 `a = 1` ， 由于需要保持变量持续性，所以没有使用变量声明关键词(例如 var/let 这些)。
+Why does it work this way? Because it internally transforms the proxy into server-side code and runs it in the server environment, so you need to pay attention to server security, such as limiting the execution scope using a VM.
 
-## 开发
+## Features
+
+- Supports assignment, value retrieval, function calls, and callbacks
+- Supports logical continuity, not just single function calls
+- Supports custom global execution space
+- Supports referencing remote variables
+- Supports custom transformers
+
+
+## Custom Execution
+
+Customize the `run` function in the SDK to implement a custom execution process and return the result.
+
+``` js
+const { anyHook } = require(`any-hook`)
+
+new Promise(async () => {
+  const { proxy } = anyHook({
+    toolOpt: {
+      sdk: {
+        async run([opt], ctx) {
+          return new Promise((resolve, reject) => {
+            console.log(`run`, opt)
+            resolve([`res`])
+          })
+        }
+      }
+    },
+  })
+  const fs = proxy.require(`fs`)
+  const list = await fs.readdirSync(`./`)
+  console.log({list})
+})
+```
+
+If you need to write code in other languages, such as Python, within JavaScript, you may need to refer to the `server/index.js` file to add the execution environment in Python.
+
+## Custom Code Transformation
+
+`anyHook` supports passing a `tool` function to customize the transformation process:
+
+``` js
+anyHook({
+  tool(){}, // Write transformation logic here
+  toolOpt: {},
+})
+```
+
+You can refer to the `to.js.js` file, which implements the transformation of proxies into JavaScript code.
+
+## Development
 
 ``` sh
-# 安装依赖
+# Install dependencies
 pnpm i
 
-# 运行 rpc 服务
+# Run the RPC service
 pnpm run server
 
-# 运行测试用例
+# Run test cases
 pnpm run test
 ```
+
+## License
+
+MIT
