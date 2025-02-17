@@ -1,14 +1,20 @@
 {
-  "name": "hook-run",
-  "version": "1.0.0",
-  "description": "",
+  "name": "any-proxy",
+  "version": "0.0.1",
+  "description": "Transform or execute remote code via proxy.",
   "scripts": {
     "server": "npx nodemon --watch server --exec \"node server/index.js\"",
     "test": "vitest --reporter=basic --slowTestThreshold=50"
   },
+  "main": "./index.cjs",
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/wll8/any-proxy.git"
+  },
+  "homepage": "https://github.com/wll8/any-proxy",
   "dependencies": {
     "deasync": "^0.1.30",
     "mitt": "^3.0.1",
